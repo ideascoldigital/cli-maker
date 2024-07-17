@@ -32,4 +32,22 @@ cli.command(
   }
 );
 
+cli.command(
+  'other',
+  'Other goodbyes to the user',
+  [
+    { name: 'name', description: 'The name of the user to say goodbye to' },
+    { name: 'lastname', description: 'The lastname of the user to say goodbye to' }
+  ],
+  (args) => {
+    const name = args.name;
+    console.log('args', args);
+    if (name) {
+      console.log(`Goodbye, ${name}!`);
+    } else {
+      console.log(`Error: Name parameter is required`);
+    }
+  }
+);
+
 cli.parse(process.argv);

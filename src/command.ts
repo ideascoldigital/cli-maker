@@ -1,5 +1,6 @@
 // src/command.ts
 import { Colors } from './colors';
+import readline from 'readline';
 
 export interface Command {
   name: string;
@@ -38,7 +39,15 @@ export class CLI {
     }
 
     const params = this.parseArgs(args.slice(1));
-    command.action(params);
+    const missingParams = command.params.filter(p => !params[p.name]);
+
+    if (missingParams.length > 0) {
+      this.promptForMissingParams(missingParams, params).then(fullParams => {
+        command.action(fullParams);
+      });
+    } else {
+      command.action(params);
+    }
   }
 
   private parseArgs(args: string[]): { [key: string]: string } {
@@ -50,6 +59,26 @@ export class CLI {
       }
     });
     return result;
+  }
+
+  private promptForMissingParams(missingParams: { name: string; description: string }[], existingParams: { [key: string]: string }): Promise<{ [key: string]: string }> {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    const askQuestion = (question: string): Promise<string> => {
+      return new Promise(resolve => rl.question(question, resolve));
+    };
+
+    const prompts = missingParams.reduce((promise, param) => {
+      return promise.then(async answers => {
+        const answer = await askQuestion(`${Colors.FgGreen}> (${param.name}) ${param.description}:${Colors.Reset} `);
+        return { ...answers, [param.name]: answer };
+      });
+    }, Promise.resolve(existingParams));
+
+    return prompts.finally(() => rl.close());
   }
 
   public help() {
