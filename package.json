@@ -1,0 +1,22 @@
+{
+  "name": "@ideascol/cli-maker",
+  "version": "1.0.0",
+  "description": "A library to help create CLIs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "example": "tsc && tsc examples/example1.ts --outDir dist/examples && node dist/examples/example1.js",
+    "publish": "npm publish --access public"
+  },
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "typescript": "^5.5.3"
+  }
+}
