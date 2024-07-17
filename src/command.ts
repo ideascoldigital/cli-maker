@@ -1,4 +1,3 @@
-// src/command.ts
 import { Colors } from './colors';
 import readline from 'readline';
 
