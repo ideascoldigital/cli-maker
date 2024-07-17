@@ -5,13 +5,13 @@ export interface Command {
   name: string;
   description: string;
   params: { name: string; description: string }[];
-  action: (...args: string[]) => void;
+  action: (args: { [key: string]: string }) => void;
 }
 
 export class CLI {
   private commands: Command[] = [];
 
-  public command(name: string, description: string, params: { name: string; description: string }[], action: (...args: string[]) => void) {
+  public command(name: string, description: string, params: { name: string; description: string }[], action: (args: { [key: string]: string }) => void) {
     this.commands.push({ name, description, params, action });
   }
 
@@ -37,7 +37,19 @@ export class CLI {
       return;
     }
 
-    command.action(...args.slice(1));
+    const params = this.parseArgs(args.slice(1));
+    command.action(params);
+  }
+
+  private parseArgs(args: string[]): { [key: string]: string } {
+    const result: { [key: string]: string } = {};
+    args.forEach(arg => {
+      const [key, value] = arg.split('=');
+      if (key.startsWith('--')) {
+        result[key.slice(2)] = value || '';
+      }
+    });
+    return result;
   }
 
   public help() {

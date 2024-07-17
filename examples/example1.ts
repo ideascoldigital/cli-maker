@@ -7,17 +7,29 @@ cli.command(
   'greet',
   'Greet the user',
   [{ name: 'name', description: 'The name of the user to greet' }],
-  (name: string) => {
-    console.log(`Hello, ${name}!`);
+  (args) => {
+    const name = args.name;
+    if (name) {
+      console.log(`Hello, ${name}!`);
+    } else {
+      console.log(`Error: Name parameter is required`);
+    }
   }
 );
 
 cli.command(
   'bye',
-  'Say goodbye to the user',
+  'Say goodbyes to the user',
   [{ name: 'name', description: 'The name of the user to say goodbye to' }],
-  (name: string) => {
-    console.log(`Goodbye, ${name}!`);
+  (args) => {
+    const name = args.name;
+    console.log('args', args);
+    if (name) {
+      console.log(`Goodbye, ${name}!`);
+    } else {
+      console.log(`Error: Name parameter is required`);
+    }
   }
 );
+
 cli.parse(process.argv);
