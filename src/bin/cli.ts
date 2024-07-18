@@ -37,6 +37,26 @@ let commandGreet: Command = {
 export default commandGreet;
 `;
 
+const githubactionTemplate = `on:
+  push:
+    branches: main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - uses: JS-DevTools/npm-publish@v3
+        with:
+          token: \${{ secrets.NPM_TOKEN }}
+`;
+
 async function initializeProject() {
   console.log('Generating base project...');
   execSync('npm init -y', { stdio: 'inherit' });
@@ -85,6 +105,15 @@ async function generateCommandExample() {
     console.log('greetCommand.ts has been generated!');
   } catch (err) {
     console.error('Failed to generate greetCommand.ts:', err);
+  }
+}
+
+async function generateGithubAction() {
+  try {
+    await fs.writeFile('.github/workflows/publish.yml', githubactionTemplate);
+    console.log('github action has been generated!');
+  } catch (err) {
+    console.error('Failed to generate github action:', err);
   }
 }
 
@@ -143,6 +172,7 @@ let command = {
     await createTsConfig();
     await createProjectStructure();
     await createGitIgnore();
+    await generateGithubAction();
     await generateIndexTs('awesome-cli', 'My own library');
     await generateCommandExample();
     const newScripts = {
