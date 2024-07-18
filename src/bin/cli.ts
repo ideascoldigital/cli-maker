@@ -142,9 +142,15 @@ async function generateCommandExample() {
   }
 }
 
+async function createFileWithDirectories(path: string, data: any) {
+  const directories = path.substring(0, path.lastIndexOf('/'));
+  await fs.mkdir(directories, { recursive: true });
+  await fs.writeFile(path, data);
+}
+
 async function generateGithubAction() {
   try {
-    await fs.writeFile('.github/workflows/publish.yml', githubactionTemplate);
+    await createFileWithDirectories('.github/workflows/publish.yml', githubactionTemplate)
     console.log('github action has been generated!');
   } catch (err) {
     console.error('Failed to generate github action:', err);
@@ -214,7 +220,7 @@ let command = {
   action: async () => {
     await initializeProject();
     await installDependencies();
-    await createTsConfig();
+    await createTsConfigFiles();
     await createProjectStructure();
     await createGitIgnore();
     await generateGithubAction();
@@ -223,7 +229,8 @@ let command = {
     const newScripts = {
       "build": "tsc",
       "test": "echo \"Error: no test specified\" && exit 0",
-      "prepublishOnly": "npm run build"
+      "prepublishOnly": "npm run build",
+      "start": "npm run build && node ./dist/index.js"
     };
 
     await addScriptsToPackageJson(newScripts);
