@@ -7,6 +7,9 @@ import { CLI } from '../command';
 
 const cli = new CLI("cli", "A simple CLI builder");
 
+const templateIndex = `export { Greet } from './lib';
+`;
+
 const template = `import { CLI } from '@ideascol/cli-maker';
 
 import CommandGreet from './commands/greetCommand';
@@ -20,21 +23,42 @@ cli.parse(process.argv);
 
 const templateReadme = `# {{cliName}}
 
-  {{cliDescription}}
+{{cliDescription}}
 
-  ## Installation
-  \`\`\`
-  npm install -g {{cliName}}
-  \`\`\`
+## Installation
+\`\`\`
+npm install -g {{cliName}}
+\`\`\`
 
-  ## Usage
-  \`\`\`
-  {{cliName}} greet --name John
-  \`\`\`
+## Usage as cli
+\`\`\`bash
+
+# npm link, to test the cli locally
+
+{{cliName}} greet --name John
+\`\`\`
+
+## Usage as library
+
+\`\`\`ts
+import { Greet } from '{{cliName}}';
+
+Greet('John');
+
+\`\`\`
+
+`;
+
+const templateGreet = `// Greet example
+const Greet = (name: string) => {
+  console.log(\`Hello, \${name}!\`);
+}
+
+export { Greet };
 `;
 
 const templateBin = `#!/usr/bin/env node
-require('../index.js');
+require('../cli.js');
 `;
 
 const templateCommand = `import { Command } from '@ideascol/cli-maker';
@@ -125,10 +149,6 @@ async function installDependencies() {
   execSync('npm run start', { stdio: 'inherit' });
 }
 
-async function createTsConfig() {
-  console.log('Creating tsconfig.json...');
-  execSync('npx tsc --init', { stdio: 'inherit' });
-}
 
 async function createProjectStructure() {
   console.log('Creating project structure...');
@@ -144,10 +164,41 @@ async function createGitIgnore() {
 }
 
 async function generateIndexTs(cliName: string, cliDescription: string) {
-  let result = template.replace('{{cliName}}', cliName).replace('{{cliDescription}}', cliDescription);
+  let result = templateIndex
 
   try {
     await fs.writeFile('src/index.ts', result);
+    console.log('index.ts has been generated!');
+  } catch (err) {
+    console.error('Failed to generate index.ts:', err);
+  }
+}
+
+async function generateGreetExample() {
+  try {
+    await createFileWithDirectories('src/lib/greet.ts', templateGreet);
+    console.log('greet.ts has been generated!');
+  } catch (err) {
+    console.error('Failed to generate greet.ts:', err);
+  }
+}
+
+async function generateLibIndex() {
+  const result = `export { Greet } from './greet';`;
+
+  try {
+    await createFileWithDirectories('src/lib/index.ts', result);
+    console.log('index.ts has been generated!');
+  } catch (err) {
+    console.error('Failed to generate index.ts:', err);
+  }
+}
+
+async function generateBinTs(cliName: string, cliDescription: string) {
+  let result = template.replace('{{cliName}}', cliName).replace('{{cliDescription}}', cliDescription);
+
+  try {
+    await fs.writeFile('src/cli.ts', result);
     console.log('index.ts has been generated!');
   } catch (err) {
     console.error('Failed to generate index.ts:', err);
@@ -202,7 +253,7 @@ async function addScriptsToPackageJson(
 
     const binName: string = name.split('/').pop() || name;
     packageJson.bin = {
-      [binName]: "./dist/bin/cli.js"
+      [binName]: "dist/bin/cli.js"
     };
 
     packageJson.main = "dist/index.js";
@@ -298,7 +349,10 @@ let command = {
     await createProjectStructure();
     await createGitIgnore();
     await generateGithubAction();
-    await generateIndexTs(name, description);
+    await generateGreetExample();
+    await generateLibIndex();
+    await generateBinTs(name, description);
+    await generateIndexTs(name, description); // Transform to export library lib
     await generateCommandExample();
 
     const newScripts = {
