@@ -62,6 +62,7 @@ require('../cli.js');
 `;
 
 const templateCommand = `import { Command } from '@ideascol/cli-maker';
+import { Greet } from '../lib';
 
 let commandGreet: Command = {
   name: 'greet',
@@ -70,7 +71,7 @@ let commandGreet: Command = {
   action: (args) => {
     const name = args.name;
     if (name) {
-      console.log(\`Hello, \${name}!\`);
+      Greet(name);
     } else {
       console.log('Error: Name parameter is required');
     }
