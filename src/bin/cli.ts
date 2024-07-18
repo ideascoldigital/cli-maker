@@ -18,6 +18,21 @@ cli.command(CommandGreet);
 cli.parse(process.argv);
 `;
 
+const templateReadme = `# {{cliName}}
+
+  {{cliDescription}}
+
+  ## Installation
+  \`\`\`
+  npm install -g {{cliName}}
+  \`\`\`
+
+  ## Usage
+  \`\`\`
+  {{cliName}} greet --name John
+  \`\`\`
+`;
+
 const templateBin = `#!/usr/bin/env node
 require('../index.js');
 `;
@@ -226,6 +241,18 @@ async function createBinFile() {
   }
 }
 
+async function createReadmeFile(cliName: string, cliDescription: string) {
+  const result = templateReadme.replace('{{cliName}}', cliName).replace('{{cliDescription}}', cliDescription);
+
+  try {
+    await fs.writeFile('README.md', result);
+    console.log('README.md has been generated!');
+  } catch (err) {
+    console.error('Failed to generate README.md:', err);
+  }
+}
+
+
 async function initializeGit() {
   try {
     console.log('Initializing git repository...');
@@ -279,6 +306,7 @@ let command = {
 
     await addScriptsToPackageJson(newScripts, name, description, author, email);
     await createBinFile();
+    await createReadmeFile(name, description);
     await installDependencies();
     await initializeGit();
 
