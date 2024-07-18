@@ -43,7 +43,7 @@ npm install -g {{cliName}}
 \`\`\`ts
 import { Greet } from '{{cliName}}';
 
-Greet('John');
+Greet('John'); // should print 'Hello, John!'
 
 \`\`\`
 
@@ -297,7 +297,7 @@ async function createBinFile() {
 }
 
 async function createReadmeFile(cliName: string, cliDescription: string) {
-  const result = templateReadme.replace('{{cliName}}', cliName).replace('{{cliDescription}}', cliDescription);
+  const result = templateReadme.replace('/{{cliName}}/g', cliName).replace('/{{cliDescription}}/g', cliDescription);
 
   try {
     await fs.writeFile('README.md', result);
