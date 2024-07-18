@@ -11,8 +11,10 @@ export interface Command {
 export class CLI {
   private commands: Command[] = [];
 
-  public command(name: string, description: string, params: { name: string; description: string }[], action: (args: { [key: string]: string }) => void) {
-    this.commands.push({ name, description, params, action });
+  constructor(private name: string, private description: string) {}
+
+  public command(command: Command) {
+    this.commands.push(command);
   }
 
   public parse(argv: string[]) {
@@ -81,10 +83,16 @@ export class CLI {
   }
 
   public help() {
+    console.log("");
+    console.log(`${Colors.Bright}Welcome to ${Colors.FgGreen}${this.name}${Colors.Reset}`);
+    console.log("");
+    console.log(`${Colors.FgYellow}${this.description}${Colors.Reset}`);
+    console.log("");
     console.log(`${Colors.Bright}Available commands:${Colors.Reset}`);
     this.commands.forEach(cmd => {
       console.log(`${Colors.FgGreen}  ${cmd.name}${Colors.Reset}: ${cmd.description}`);
     });
+    console.log("");
   }
 
   private commandHelp(command: Command) {

@@ -3,11 +3,11 @@ import { CLI } from '@ideascol/cli-maker';
 
 const cli = new CLI();
 
-cli.command(
-  'greet',
-  'Greet the user',
-  [{ name: 'name', description: 'The name of the user to greet' }],
-  (args) => {
+let commandGreet = {
+  name: 'greet',
+  description: 'Greet the user',
+  params: [{ name: 'name', description: 'The name of the user to greet' }],
+  action: (args) => {
     const name = args.name;
     if (name) {
       console.log(`Hello, ${name}!`);
@@ -15,39 +15,24 @@ cli.command(
       console.log(`Error: Name parameter is required`);
     }
   }
-);
+}
 
-cli.command(
-  'bye',
-  'Say goodbyes to the user',
-  [{ name: 'name', description: 'The name of the user to say goodbye to' }],
-  (args) => {
+cli.command(commandGreet);
+
+let commandBye = {
+  name: 'bye',
+  description: 'Say goodbyes to the user',
+  params: [{ name: 'name', description: 'The name of the user to say goodbye to' }],
+  action: (args) => {
     const name = args.name;
-    console.log('args', args);
     if (name) {
       console.log(`Goodbye, ${name}!`);
     } else {
       console.log(`Error: Name parameter is required`);
     }
   }
-);
+}
 
-cli.command(
-  'other',
-  'Other goodbyes to the user',
-  [
-    { name: 'name', description: 'The name of the user to say goodbye to' },
-    { name: 'lastname', description: 'The lastname of the user to say goodbye to' }
-  ],
-  (args) => {
-    const name = args.name;
-    console.log('args', args);
-    if (name) {
-      console.log(`Goodbye, ${name}!`);
-    } else {
-      console.log(`Error: Name parameter is required`);
-    }
-  }
-);
+cli.command(commandBye);
 
 cli.parse(process.argv);
