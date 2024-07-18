@@ -35,7 +35,7 @@ npm install -g {{cliName}}
 
 # npm link, to test the cli locally
 
-{{cliName}} greet --name John
+{{binName}} greet --name=John
 \`\`\`
 
 ## Usage as library
@@ -302,7 +302,8 @@ async function createBinFile() {
 }
 
 async function createReadmeFile(cliName: string, cliDescription: string) {
-  const result = templateReadme.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
+  const binName: string = cliName.split('/').pop() || cliName;
+  const result = templateReadme.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription).replace(/{{binName}}/g, binName);
 
   try {
     await fs.writeFile('README.md', result);
