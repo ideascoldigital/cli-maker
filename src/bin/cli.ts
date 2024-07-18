@@ -19,7 +19,7 @@ cli.parse(process.argv);
 `;
 
 const templateBin = `#!/usr/bin/env node
-require('../dist/index.js');
+require('../index.js');
 `;
 
 const templateCommand = `import { Command } from '@ideascol/cli-maker';
