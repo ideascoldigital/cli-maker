@@ -18,6 +18,10 @@ cli.command(CommandGreet);
 cli.parse(process.argv);
 `;
 
+const templateBin = `#!/usr/bin/env node
+require('../dist/index.js');
+`;
+
 const templateCommand = `import { Command } from '@ideascol/cli-maker';
 
 let commandGreet: Command = {
@@ -183,7 +187,7 @@ async function addScriptsToPackageJson(
 
     const binName: string = name.split('/').pop() || name;
     packageJson.bin = {
-      [binName]: "./dist/index.js"
+      [binName]: "./dist/bin/cli.js"
     };
 
     packageJson.main = "dist/index.js";
@@ -210,6 +214,15 @@ async function createTsConfigFiles() {
     console.log('tsconfig.base.json, tsconfig.json and tsconfig.test.json have been generated!');
   } catch (err) {
     console.error('Failed to generate tsconfig files:', err);
+  }
+}
+
+async function createBinFile() {
+  try {
+    await createFileWithDirectories('src/bin/cli.ts', templateBin);
+    console.log('bin/cli.ts has been generated!');
+  } catch (err) {
+    console.error('Failed to generate bin/cli.ts:', err);
   }
 }
 
@@ -265,6 +278,7 @@ let command = {
     };
 
     await addScriptsToPackageJson(newScripts, name, description, author, email);
+    await createBinFile();
     await installDependencies();
     await initializeGit();
 
