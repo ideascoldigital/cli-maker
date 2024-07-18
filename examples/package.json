@@ -1,0 +1,12 @@
+{
+  "name": "@ideascol/cli-maker-example",
+  "version": "1.0.0",
+  "description": "An example of how to use the cli-maker library",
+  "main": "index.js",
+  "scripts": {
+    "example": "node index.js"
+  },
+  "dependencies": {
+    "@ideascol/cli-maker": "*"
+  }
+}

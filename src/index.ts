@@ -1,1 +1,1 @@
-export { CLI, Command } from './command';
+export { CLI, Command, ParamType } from './command';
