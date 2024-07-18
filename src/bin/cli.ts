@@ -57,6 +57,40 @@ jobs:
           token: \${{ secrets.NPM_TOKEN }}
 `;
 
+const tsconfigTemplate = `{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*.ts"]
+}
+`;
+
+const tsconfigBaseTemplate = `{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "exclude": ["node_modules"]
+}
+`;
+
+const tsconfigTestTemplate = `{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "."
+  },
+  "include": ["tests/**/*.ts", "src/**/*.ts"]
+}
+`
+
 async function initializeProject() {
   console.log('Generating base project...');
   execSync('npm init -y', { stdio: 'inherit' });
@@ -147,6 +181,17 @@ async function addScriptsToPackageJson(scripts: any) {
     console.log('package.json updated successfully.');
   } catch (err) {
     console.error('Error updating package.json:', err);
+  }
+}
+
+async function createTsConfigFiles() {
+  try {
+    await fs.writeFile('tsconfig.base.json', tsconfigBaseTemplate);
+    await fs.writeFile('tsconfig.json', tsconfigTemplate);
+    await fs.writeFile('tsconfig.test.json', tsconfigTestTemplate);
+    console.log('tsconfig.base.json, tsconfig.json and tsconfig.test.json have been generated!');
+  } catch (err) {
+    console.error('Failed to generate tsconfig files:', err);
   }
 }
 
