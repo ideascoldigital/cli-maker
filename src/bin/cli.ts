@@ -267,6 +267,10 @@ async function addScriptsToPackageJson(
       node: ">=20.15.1"
     };
 
+    packageJson.publishConfig = {
+      access: "public"
+    };
+
     const updatedPackageJson = JSON.stringify(packageJson, null, 2);
 
     await fs.writeFile(packageJsonPath, updatedPackageJson, 'utf8');
@@ -297,7 +301,7 @@ async function createBinFile() {
 }
 
 async function createReadmeFile(cliName: string, cliDescription: string) {
-  const result = templateReadme.replace('/{{cliName}}/g', cliName).replace('/{{cliDescription}}/g', cliDescription);
+  const result = templateReadme.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
 
   try {
     await fs.writeFile('README.md', result);
