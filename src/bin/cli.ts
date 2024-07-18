@@ -102,6 +102,8 @@ async function installDependencies() {
 
   console.log('Installing @ideascol/cli-maker...');
   execSync('npm install @ideascol/cli-maker', { stdio: 'inherit' });
+  execSync('npm install', { stdio: 'inherit' });
+  execSync('npm run start', { stdio: 'inherit' });
 }
 
 async function createTsConfig() {
@@ -157,7 +159,12 @@ async function generateGithubAction() {
   }
 }
 
-async function addScriptsToPackageJson(scripts: any) {
+async function addScriptsToPackageJson(
+  scripts: any,
+  name: string,
+  description: string,
+  author: string, email: string
+) {
   const packageJsonPath = './package.json';
 
   try {
@@ -168,6 +175,11 @@ async function addScriptsToPackageJson(scripts: any) {
       ...packageJson.scripts,
       ...scripts
     };
+
+    packageJson.name = name;
+    packageJson.description = description
+    packageJson.version = "0.0.1";
+    packageJson.author = `${author} <${email}>`;
 
     packageJson.bin = {
       "awesome-cli": "./dist/index.js"
@@ -216,16 +228,35 @@ async function initializeGit() {
 let command = {
   name: 'create',
   description: 'Generate a base project for building a CLI',
-  params: [],
-  action: async () => {
+  params: [
+    {
+      name: "name",
+      description: "The name of the library, ex: @company/awesome-cli"
+    },
+    {
+      name: "description",
+      description: "The description of the library to create"
+    },
+    {
+      name: "author",
+      description: "The author of the library"
+    },
+    {
+      name: "email",
+      description: "The email of the author"
+    }
+  ],
+  action: async (args: any) => {
+    const {name, description, author, email} = args;
+
     await initializeProject();
-    await installDependencies();
     await createTsConfigFiles();
     await createProjectStructure();
     await createGitIgnore();
     await generateGithubAction();
-    await generateIndexTs('awesome-cli', 'My own library');
+    await generateIndexTs(name, description);
     await generateCommandExample();
+
     const newScripts = {
       "build": "tsc",
       "test": "echo \"Error: no test specified\" && exit 0",
@@ -233,7 +264,8 @@ let command = {
       "start": "npm run build && node ./dist/index.js"
     };
 
-    await addScriptsToPackageJson(newScripts);
+    await addScriptsToPackageJson(newScripts, name, description, author, email);
+    await installDependencies();
     await initializeGit();
 
     console.log('Project initialized successfully.');

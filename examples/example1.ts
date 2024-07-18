@@ -1,6 +1,7 @@
 // examples/example1.ts
 import { CLI } from '@ideascol/cli-maker';
 
+
 const cli = new CLI();
 
 let commandGreet = {
