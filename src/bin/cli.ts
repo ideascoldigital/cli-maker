@@ -181,13 +181,13 @@ async function addScriptsToPackageJson(
     packageJson.version = "0.0.1";
     packageJson.author = `${author} <${email}>`;
 
+    const binName: string = name.split('/').pop() || name;
     packageJson.bin = {
-      "awesome-cli": "./dist/index.js"
+      [binName]: "./dist/index.js"
     };
 
     packageJson.main = "dist/index.js";
     packageJson.types = "dist/index.d.ts";
-    packageJson.author = "Your Name <your@email>";
     packageJson.license = "MIT";
     packageJson.files = [
       "dist"
