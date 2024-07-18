@@ -359,7 +359,7 @@ let command = {
       "build": "tsc",
       "test": "echo \"Error: no test specified\" && exit 0",
       "prepublishOnly": "npm run build",
-      "start": "npm run build && node ./dist/index.js"
+      "start": "npm run build && node ./dist/cli.js"
     };
 
     await addScriptsToPackageJson(newScripts, name, description, author, email);
