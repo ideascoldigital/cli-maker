@@ -212,6 +212,10 @@ async function addScriptsToPackageJson(
       "dist"
     ];
 
+    packageJson.engines = {
+      node: ">=20.15.1"
+    };
+
     const updatedPackageJson = JSON.stringify(packageJson, null, 2);
 
     await fs.writeFile(packageJsonPath, updatedPackageJson, 'utf8');
