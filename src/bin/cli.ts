@@ -20,7 +20,7 @@ cli.parse(process.argv);
 
 const templateCommand = `import { Command } from '@ideascol/cli-maker';
 
-let commandGreet = {
+let commandGreet: Command = {
   name: 'greet',
   description: 'Greet the user',
   params: [{ name: 'name', description: 'The name of the user to greet' }],
@@ -43,8 +43,8 @@ async function initializeProject() {
 }
 
 async function installDependencies() {
-  console.log('Installing TypeScript and ts-node...');
-  execSync('npm install --save-dev typescript ts-node', { stdio: 'inherit' });
+  console.log('Installing TypeScript and @types/node...');
+  execSync('npm install --save-dev typescript @types/node', { stdio: 'inherit' });
 
   console.log('Installing @ideascol/cli-maker...');
   execSync('npm install @ideascol/cli-maker', { stdio: 'inherit' });
@@ -86,7 +86,6 @@ async function generateCommandExample() {
   } catch (err) {
     console.error('Failed to generate greetCommand.ts:', err);
   }
-
 }
 
 async function addScriptsToPackageJson(scripts: any) {
@@ -100,6 +99,18 @@ async function addScriptsToPackageJson(scripts: any) {
       ...packageJson.scripts,
       ...scripts
     };
+
+    packageJson.bin = {
+      "awesome-cli": "./dist/index.js"
+    };
+
+    packageJson.main = "dist/index.js";
+    packageJson.types = "dist/index.d.ts";
+    packageJson.author = "Your Name <your@email>";
+    packageJson.license = "MIT";
+    packageJson.files = [
+      "dist"
+    ];
 
     const updatedPackageJson = JSON.stringify(packageJson, null, 2);
 
