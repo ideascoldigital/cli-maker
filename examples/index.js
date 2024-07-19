@@ -1,6 +1,9 @@
 const { CLI, ParamType } = require('@ideascol/cli-maker');
 
-const cli = new CLI("mycli", "A simple CLI");
+const cli = new CLI("mycli", "A simple CLI", {
+  version: "1.0.0",
+  askForMissingParam: true,
+});
 
 let commandGreet = {
   name: 'greet',
@@ -24,6 +27,7 @@ let commandEmail = {
       name: 'url',
       description: 'The URL of the user to get the email',
       type: ParamType.Url,
+      required: true
     },
     {
       name: "is_ok",
@@ -34,6 +38,7 @@ let commandEmail = {
       name: 'email',
       description: 'The name of the user to get the email',
       type: ParamType.Email,
+      required: true
     },
     {
       name: 'age',

@@ -15,14 +15,23 @@ export enum ParamType {
 export interface Command {
   name: string;
   description: string;
-  params: { name: string; description: string; type?: ParamType; options?: any[] }[];
+  params: { name: string; description: string; type?: ParamType; required?: boolean; options?: any[] }[];
   action: (args: { [key: string]: any }) => void;
+}
+
+export interface CLIOptions {
+  version?: string;
+  askForMissingParam: boolean;
 }
 
 export class CLI {
   private commands: Command[] = [];
 
-  constructor(private name: string, private description: string) {}
+  constructor(private name: string, private description: string, private options?: CLIOptions) {
+    if (this.options == null) {
+      this.options = { askForMissingParam: false, version: '1.0.0' };
+    }
+  }
 
   public command(command: Command) {
     this.commands.push(command);
@@ -49,18 +58,20 @@ export class CLI {
     }
 
     const params = this.parseArgs(args.slice(1), command);
-    // console.log('Parsed Params:', params); DEBUG MESSAGE
     if (params.error) {
       console.log(params.error);
       return;
     }
 
-    const missingParams = command.params.filter(p => params.result && params.result[p.name] === undefined);
-    // console.log('Missing Params:', missingParams); // DEBUG MESSAGE
+    const missingParams = command.params.filter(p => p.required && params.result && params.result[p.name] === undefined);
     if (missingParams.length > 0) {
-      this.promptForMissingParams(missingParams, params.result || {}).then(fullParams => {
-        command.action(fullParams);
-      });
+      if (this.options!.askForMissingParam) {
+        this.promptForMissingParams(missingParams, params.result || {}).then(fullParams => {
+          command.action(fullParams);
+        });
+      } else {
+        console.log(`${Colors.FgRed}Missing required parameters:${Colors.Reset} ${missingParams.map(p => p.name).join(', ')}`);
+      }
     } else {
       command.action(params.result || {});
     }
@@ -127,11 +138,11 @@ export class CLI {
     }
   }
 
-  private findParamType(paramName: string): { name: string; description: string; type?: ParamType; options?: any[] } | undefined {
+  private findParamType(paramName: string): { name: string; description: string; type?: ParamType; required?: boolean; options?: any[] } | undefined {
     return this.commands.flatMap(command => command.params).find(param => param.name === paramName);
   }
 
-  private async promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
+  private async promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -165,7 +176,7 @@ export class CLI {
     return prompts.finally(() => rl.close());
   }
 
-  private async promptWithArrows(param: { name: string; description: string, type?: ParamType; options?: any[] }): Promise<string> {
+  private async promptWithArrows(param: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }): Promise<string> {
     return new Promise(resolve => {
       let index = 0;
       const options = param.options!;
@@ -218,7 +229,7 @@ export class CLI {
     if (command.params.length > 0) {
       console.log(`${Colors.FgGreen}Parameters:${Colors.Reset}`);
       command.params.forEach(param => {
-        console.log(`${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description}`);
+        console.log(`${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description} ${param.required ? '(required)' : ''}`);
       });
     }
   }
