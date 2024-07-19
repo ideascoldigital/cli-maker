@@ -20,26 +20,36 @@ let commandEmail = {
   name: 'email',
   description: 'Get the email of the user',
   params: [
-    // {
-    //   name: 'url',
-    //   description: 'The URL of the user to get the email',
-    //   type: ParamType.Url,
-    // },
-    // {
-    //   name: 'email',
-    //   description: 'The name of the user to get the email',
-    //   type: ParamType.Email,
-    // },
-    // {
-    //   name: 'age',
-    //   description: 'The age of the user to get the email',
-    //   type: ParamType.Number,
-    // },
     {
-      name: 'tags',
-      description: 'List of tags associated with the user, in JSON format (e.g., ["tag1", "tag2"] or {"key1": "value1", "key2": "value2"})',
+      name: 'url',
+      description: 'The URL of the user to get the email',
+      type: ParamType.Url,
+    },
+    {
+      name: "is_ok",
+      description: "Is the user ok?",
+      type: ParamType.Boolean,
+    },
+    {
+      name: 'email',
+      description: 'The name of the user to get the email',
+      type: ParamType.Email,
+    },
+    {
+      name: 'age',
+      description: 'The age of the user to get the email',
+      type: ParamType.Number,
+    },
+    {
+      name: 'metadata',
+      description: 'List of tags',
       type: ParamType.List,
       options: ["tag1", "tag2"],
+    },
+    {
+      name: 'tags',
+      description: '(e.g., ["tag1", "tag2"] or {"key1": "value1", "key2": "value2"})',
+      type: ParamType.Custom,
     }
   ],
   action: (args) => {

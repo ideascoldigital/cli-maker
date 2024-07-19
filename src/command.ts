@@ -106,6 +106,9 @@ export class CLI {
       case ParamType.List:
         return { value: value };
       case ParamType.Boolean:
+        if (value.toLowerCase() !== 'true' && value.toLowerCase() !== 'false') {
+          return { error: `${Colors.FgRed}Invalid boolean:${Colors.Reset} ${value}` };
+        }
         return { value: value.toLowerCase() === 'true' };
       case ParamType.Email:
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
@@ -126,7 +129,7 @@ export class CLI {
     return this.commands.flatMap(command => command.params).find(param => param.name === paramName);
   }
 
-  private promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
+  private async promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -140,33 +143,58 @@ export class CLI {
       return promise.then(async answers => {
         let answer: string;
         let validation: { error?: string; value?: any };
-        do {
-          if (param.type === ParamType.List && param.options) {
-            console.log(`${Colors.FgYellow}Available options for ${param.name}:${Colors.Reset}`);
-            param.options.forEach((option, index) => {
-              console.log(`${Colors.FgGreen}${index}: ${option}${Colors.Reset}`);
-            });
-            answer = await askQuestion(`${Colors.FgYellow}Select an option (enter the index) for ${param.name}: ${Colors.Reset}`);
-            const index = parseInt(answer, 10);
-            if (isNaN(index) || index < 0 || index >= param.options.length) {
-              console.log(`${Colors.FgRed}Invalid selection. Please enter a valid index.${Colors.Reset}`);
-              validation = { error: "Invalid selection" };
-            } else {
-              validation = { value: param.options[index] };
-            }
-          } else {
+        if (param.type === ParamType.List && param.options) {
+          console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `)
+          answer = await this.promptWithArrows(param);
+          validation = { value: param.options[parseInt(answer, 10)] };
+        } else {
+          do {
             answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
             validation = this.validateParam(answer, param.type);
             if (validation.error) {
               console.log(validation.error);
             }
-          }
-        } while (validation.error);
+          } while (validation.error);
+        }
         return { ...answers, [param.name]: validation.value };
       });
     }, Promise.resolve(existingParams));
 
     return prompts.finally(() => rl.close());
+  }
+
+  private async promptWithArrows(param: { name: string; description: string, type?: ParamType; options?: any[] }): Promise<string> {
+    return new Promise(resolve => {
+      let index = 0;
+      const options = param.options!;
+      const renderOptions = () => {
+        process.stdout.write('\x1B[2K\x1B[0G');
+        options.forEach((option, i) => {
+          if (i === index) {
+            process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
+          } else {
+            process.stdout.write(`  ${option}\n`);
+          }
+        });
+        process.stdout.write('\x1B[1A'.repeat(options.length)); // Move the cursor back up
+      };
+
+      const keypressHandler = (str: string, key: readline.Key) => {
+        if (key.name === 'up') {
+          index = (index > 0) ? index - 1 : options.length - 1;
+          renderOptions();
+        } else if (key.name === 'down') {
+          index = (index + 1) % options.length;
+          renderOptions();
+        } else if (key.name === 'return') {
+          process.stdin.removeListener('keypress', keypressHandler);
+          resolve(index.toString());
+        }
+      };
+
+      process.stdin.on('keypress', keypressHandler);
+      renderOptions();
+    });
   }
 
   public help() {
