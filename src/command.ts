@@ -88,8 +88,6 @@ export class CLI {
     }
   }
 
-
-
   private findCommand(commandName: string) {
     return this.commands.find(cmd => cmd.name === commandName);
   }
@@ -111,6 +109,7 @@ export class CLI {
       });
     } else {
       console.log(`${Colors.FgRed}Missing required parameters:${Colors.Reset} ${missingParams.map(p => p.name).join(', ')}`);
+      process.exit(1);
     }
   }
 
