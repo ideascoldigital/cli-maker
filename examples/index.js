@@ -3,6 +3,7 @@ const { CLI, ParamType } = require('@ideascol/cli-maker');
 const cli = new CLI("mycli", "A simple CLI", {
   version: "1.0.0",
   askForMissingParam: true,
+  showAlwaysParams: true,
 });
 
 let commandGreet = {

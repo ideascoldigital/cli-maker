@@ -22,6 +22,7 @@ export interface Command {
 export interface CLIOptions {
   version?: string;
   askForMissingParam: boolean;
+  showAlwaysParams: boolean;
 }
 
 export class CLI {
@@ -29,7 +30,7 @@ export class CLI {
 
   constructor(private name: string, private description: string, private options?: CLIOptions) {
     if (this.options == null) {
-      this.options = { askForMissingParam: false, version: '1.0.0' };
+      this.options = { askForMissingParam: false, version: '1.0.0', showAlwaysParams: true };
     }
   }
 
@@ -63,7 +64,10 @@ export class CLI {
       return;
     }
 
-    const missingParams = command.params.filter(p => p.required && params.result && params.result[p.name] === undefined);
+    const requiredParams = command.params.filter(p => p.required && params.result && params.result[p.name] === undefined);
+    const optionalParams = command.params.filter(p => !p.required && params.result && params.result[p.name] === undefined);
+    const missingParams = [...requiredParams, ...(this.options!.showAlwaysParams ? optionalParams : [])];
+
     if (missingParams.length > 0) {
       if (this.options!.askForMissingParam) {
         this.promptForMissingParams(missingParams, params.result || {}).then(fullParams => {
@@ -144,69 +148,70 @@ export class CLI {
 
   private async promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
     const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
+        input: process.stdin,
+        output: process.stdout
     });
 
     const askQuestion = (question: string): Promise<string> => {
-      return new Promise(resolve => rl.question(question, resolve));
+        return new Promise(resolve => rl.question(question, resolve));
     };
 
     const prompts = missingParams.reduce((promise, param) => {
-      return promise.then(async answers => {
-        let answer: string;
-        let validation: { error?: string; value?: any };
-        if (param.type === ParamType.List && param.options) {
-          console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `)
-          answer = await this.promptWithArrows(param);
-          validation = { value: param.options[parseInt(answer, 10)] };
-        } else {
-          do {
-            answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
-            validation = this.validateParam(answer, param.type);
-            if (validation.error) {
-              console.log(validation.error);
+        return promise.then(async answers => {
+            let answer: string;
+            let validation: { error?: string; value?: any };
+            if (param.type === ParamType.List && param.options) {
+                console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
+                answer = await this.promptWithArrows(param);
+                validation = { value: param.options[parseInt(answer, 10)] };
+            } else {
+                do {
+                    answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
+                    validation = this.validateParam(answer, param.type);
+                    if (validation.error) {
+                        console.log(validation.error);
+                    }
+                } while (validation.error && param.required);
             }
-          } while (validation.error);
-        }
-        return { ...answers, [param.name]: validation.value };
-      });
+            return { ...answers, [param.name]: validation.value };
+        });
     }, Promise.resolve(existingParams));
 
     return prompts.finally(() => rl.close());
   }
 
+
   private async promptWithArrows(param: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }): Promise<string> {
     return new Promise(resolve => {
-      let index = 0;
-      const options = param.options!;
-      const renderOptions = () => {
-        process.stdout.write('\x1B[2K\x1B[0G');
-        options.forEach((option, i) => {
-          if (i === index) {
-            process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
-          } else {
-            process.stdout.write(`  ${option}\n`);
-          }
-        });
-        process.stdout.write('\x1B[1A'.repeat(options.length)); // Move the cursor back up
-      };
+        let index = 0;
+        const options = param.options!;
+        const renderOptions = () => {
+            process.stdout.write('\x1B[2K\x1B[0G');
+            options.forEach((option, i) => {
+                if (i === index) {
+                    process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
+                } else {
+                    process.stdout.write(`  ${option}\n`);
+                }
+            });
+            process.stdout.write('\x1B[1A'.repeat(options.length)); // Move the cursor back up
+        };
 
-      const keypressHandler = (str: string, key: readline.Key) => {
-        if (key.name === 'up') {
-          index = (index > 0) ? index - 1 : options.length - 1;
-          renderOptions();
-        } else if (key.name === 'down') {
-          index = (index + 1) % options.length;
-          renderOptions();
-        } else if (key.name === 'return') {
-          process.stdin.removeListener('keypress', keypressHandler);
-          resolve(index.toString());
-        }
-      };
+        const keypressHandler = (str: string, key: readline.Key) => {
+            if (key.name === 'up') {
+                index = (index > 0) ? index - 1 : options.length - 1;
+                renderOptions();
+            } else if (key.name === 'down') {
+                index = (index + 1) % options.length;
+                renderOptions();
+            } else if (key.name === 'return') {
+                process.stdin.removeListener('keypress', keypressHandler);
+                resolve(index.toString());
+            }
+        };
 
-      process.stdin.on('keypress', keypressHandler);
-      renderOptions();
+        process.stdin.on('keypress', keypressHandler);
+        renderOptions();
     });
   }
 
