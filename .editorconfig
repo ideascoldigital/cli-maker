@@ -29,6 +29,7 @@ indent_style = tab
 [*.ts]
 indent_style = space
 indent_size = 2
+quote_type = single
 
 # 2 space indentation for JSON files
 [*.json]

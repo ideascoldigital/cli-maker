@@ -88,6 +88,8 @@ export class CLI {
     }
   }
 
+
+
   private findCommand(commandName: string) {
     return this.commands.find(cmd => cmd.name === commandName);
   }
