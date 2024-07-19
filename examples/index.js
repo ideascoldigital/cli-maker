@@ -1,6 +1,10 @@
 const { CLI, ParamType } = require('@ideascol/cli-maker');
 
-const cli = new CLI("mycli", "A simple CLI");
+const cli = new CLI("mycli", "A simple CLI", {
+  askForMissingParam: true,
+  version: '1.0.0',
+  showAlwaysParams: true,
+});
 
 let commandEmail = {
   name: 'email',
