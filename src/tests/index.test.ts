@@ -89,7 +89,7 @@ describe("CLI", () => {
         assert.match(cleanedOutput, /Missing required parameters: param1/, "Expected error message about missing required parameters");
       } finally {
         process.exit = originalProcessExit;
-        process.stdout.write = originalWrite;  // Restaurar stdout
+        process.stdout.write = originalWrite;
       }
 
       assert.equal(cli.getCommands().length, 1);
