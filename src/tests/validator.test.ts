@@ -14,9 +14,17 @@ describe('Validator', () => {
       description: "Boolean empty",
       data: "",
       type: ParamType.Boolean,
+      expectedError: "Missing required parameter",
+      expectedValue: undefined,
+      required: true,
+    },
+    {
+      description: "Boolean empty not required",
+      data: "",
+      type: ParamType.Boolean,
       expectedError: "Invalid boolean: ",
       expectedValue: undefined,
-      required: true
+      required: false,
     },
     {
       description: "Boolean bad format",
@@ -24,7 +32,7 @@ describe('Validator', () => {
       type: ParamType.Boolean,
       expectedError: "Invalid boolean: trues",
       expectedValue: undefined,
-      required: true
+      required: true,
     },
     {
       description: "Boolean true",
@@ -32,7 +40,7 @@ describe('Validator', () => {
       type: ParamType.Boolean,
       expectedError: "",
       expectedValue: true,
-      required: true
+      required: true,
     },
     {
       description: "Boolean false",
@@ -40,7 +48,7 @@ describe('Validator', () => {
       type: ParamType.Boolean,
       expectedError: "",
       expectedValue: false,
-      required: true
+      required: true,
     },
   ];
 
@@ -52,7 +60,7 @@ describe('Validator', () => {
       const actualError = stripAnsiCodes(result.error || "");
 
       assert.equal(actualError, caseTest.expectedError, "Error message");
-      assert.equal(result.value, caseTest.expectedValue, "Value message")
+      assert.equal(result.value, caseTest.expectedValue, "Value message");
     })
   }
 })
