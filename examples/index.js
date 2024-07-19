@@ -32,10 +32,7 @@ let commandEmail = {
     }
   ],
   action: (args) => {
-    const email = args.email;
-    if (email) {
-      console.log(`Email ${email}`);
-    }
+    console.log(args);
   }
 }
 

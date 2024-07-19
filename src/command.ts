@@ -69,38 +69,39 @@ export class CLI {
       if (key.startsWith('--')) {
         const paramName = key.slice(2);
         const commandParam = this.findParamType(paramName);
-        let validator
         if (commandParam) {
-          switch (commandParam.type) {
-            case ParamType.Number:
-              validator = /^[0-9]+$/;
-              if (!validator.test(value)) {
-                return { error: `${Colors.FgRed}Invalid number:${Colors.Reset} ${value}` };
-              }
-              result[paramName] = Number(value);
-              break;
-            case ParamType.List:
-              result[paramName] = value.split(',');
-              break;
-            case ParamType.Boolean:
-              result[paramName] = value.toLowerCase() === 'true';
-              break;
-            case ParamType.Email:
-              validator = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-              if (!validator.test(value)) {
-                return { error: `${Colors.FgRed}Invalid email:${Colors.Reset} ${value}` };
-              }
-              result[paramName] = value;
-              break;
-            default:
-              result[paramName] = value;
+          const validation = this.validateParam(value, commandParam.type);
+          if (validation.error) {
+            return { error: validation.error };
           }
+          result[paramName] = validation.value;
         } else {
           result[paramName] = value;
         }
       }
     }
     return { result };
+  }
+
+  private validateParam(value: string, type?: ParamType): { error?: string; value?: any } {
+    switch (type) {
+      case ParamType.Number:
+        if (!/^[0-9]+$/.test(value)) {
+          return { error: `${Colors.FgRed}Invalid number:${Colors.Reset} ${value}` };
+        }
+        return { value: Number(value) };
+      case ParamType.List:
+        return { value: value.split(',') };
+      case ParamType.Boolean:
+        return { value: value.toLowerCase() === 'true' };
+      case ParamType.Email:
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          return { error: `${Colors.FgRed}Invalid email:${Colors.Reset} ${value}` };
+        }
+        return { value };
+      default:
+        return { value };
+    }
   }
 
   private findParamType(paramName: string): { name: string; description: string; type?: ParamType } | undefined {
@@ -119,8 +120,16 @@ export class CLI {
 
     const prompts = missingParams.reduce((promise, param) => {
       return promise.then(async answers => {
-        const answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
-        return { ...answers, [param.name]: answer };
+        let answer: string;
+        let validation: { error?: string; value?: any };
+        do {
+          answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
+          validation = this.validateParam(answer, param.type);
+          if (validation.error) {
+            console.log(validation.error);
+          }
+        } while (validation.error);
+        return { ...answers, [param.name]: validation.value };
       });
     }, Promise.resolve(existingParams));
 
