@@ -64,9 +64,9 @@ export class CLI {
       return;
     }
 
-    const requiredParams = command.params.filter(p => p.required && params.result && params.result[p.name] === undefined);
-    const optionalParams = command.params.filter(p => !p.required && params.result && params.result[p.name] === undefined);
-    const missingParams = [...requiredParams, ...(this.options!.showAlwaysParams ? optionalParams : [])];
+    const requiredParams = command.params.filter(p => p.required);
+    const optionalParams = command.params.filter(p => !p.required);
+    const missingParams = requiredParams.filter(p => params.result![p.name] === undefined);
 
     if (missingParams.length > 0) {
       if (this.options!.askForMissingParam) {
@@ -89,7 +89,7 @@ export class CLI {
         const paramName = key.slice(2);
         const commandParam = command.params.find(p => p.name === paramName);
         if (commandParam) {
-          const validation = this.validateParam(value, commandParam.type);
+          const validation = this.validateParam(value, commandParam.type, commandParam.required);
           if (validation.error) {
             return { error: validation.error };
           }
@@ -103,21 +103,25 @@ export class CLI {
   }
 
   private validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean): { error?: string; value?: any } {
-    if (value === undefined && !isRequired) {
-      return { value };
-    } else if (value === undefined && isRequired) {
+    if (value === undefined && isRequired) {
       return { error: `${Colors.FgRed}Missing required parameter${Colors.Reset}` };
+    } else if (value === undefined && !isRequired) {
+      return { value };
+    }
+
+    if (value === undefined) {
+      return { value };
     }
 
     switch (type) {
       case ParamType.Number:
-        if (value !== undefined && !/^[0-9]+$/.test(value)) {
+        if (!/^[0-9]+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid number:${Colors.Reset} ${value}` };
         }
         return { value: Number(value) };
       case ParamType.Custom:
         try {
-          const customValue = value !== undefined && JSON.parse(value);
+          const customValue = JSON.parse(value);
           if (Array.isArray(customValue) || typeof customValue === 'object') {
             return { value: customValue };
           } else {
@@ -129,17 +133,17 @@ export class CLI {
       case ParamType.List:
         return { value: value };
       case ParamType.Boolean:
-        if (value !== undefined && value.toLowerCase() !== 'true' && value.toLowerCase() !== 'false') {
+        if (value.toLowerCase() !== 'true' && value.toLowerCase() !== 'false') {
           return { error: `${Colors.FgRed}Invalid boolean:${Colors.Reset} ${value}` };
         }
-        return { value: value !== undefined && value.toLowerCase() === 'true' };
+        return { value: value.toLowerCase() === 'true' };
       case ParamType.Email:
-        if (value !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid email:${Colors.Reset} ${value}` };
         }
         return { value };
       case ParamType.Url:
-        if (value !== undefined && !/^https?:\/\/.+$/.test(value)) {
+        if (!/^https?:\/\/.+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid URL:${Colors.Reset} ${value}` };
         }
         return { value };
@@ -154,35 +158,35 @@ export class CLI {
 
   private async promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
     const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
+      input: process.stdin,
+      output: process.stdout
     });
 
     const askQuestion = (question: string): Promise<string> => {
-        return new Promise(resolve => rl.question(question, resolve));
+      return new Promise(resolve => rl.question(question, resolve));
     };
 
     const prompts = missingParams.reduce((promise, param) => {
-        return promise.then(async answers => {
-            let answer: string;
-            let validation: { error?: string; value?: any };
-            if (param.type === ParamType.List && param.options) {
-                const isRequired = param.required ? 'required' : '';
-                console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
-                answer = await this.promptWithArrows(param);
-                validation = { value: param.options[parseInt(answer, 10)] };
-            } else {
-                do {
-                    const isRequired = param.required ? 'required' : '';
-                    answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
-                    validation = this.validateParam(answer, param.type);
-                    if (validation.error) {
-                        console.log(validation.error);
-                    }
-                } while (validation.error && param.required);
+      return promise.then(async answers => {
+        let answer: string;
+        let validation: { error?: string; value?: any };
+        if (param.type === ParamType.List && param.options) {
+          const isRequired = param.required ? 'required' : '';
+          console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
+          answer = await this.promptWithArrows(param);
+          validation = { value: param.options[parseInt(answer, 10)] };
+        } else {
+          do {
+            const isRequired = param.required ? 'required' : '';
+            answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
+            validation = this.validateParam(answer, param.type, param.required);
+            if (validation.error) {
+              console.log(validation.error);
             }
-            return { ...answers, [param.name]: validation.value };
-        });
+          } while (validation.error && param.required);
+        }
+        return { ...answers, [param.name]: validation.value };
+      });
     }, Promise.resolve(existingParams));
 
     return prompts.finally(() => rl.close());
