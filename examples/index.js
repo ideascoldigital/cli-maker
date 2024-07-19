@@ -21,6 +21,11 @@ let commandEmail = {
   description: 'Get the email of the user',
   params: [
     {
+      name: 'url',
+      description: 'The URL of the user to get the email',
+      type: ParamType.Url,
+    },
+    {
       name: 'email',
       description: 'The name of the user to get the email',
       type: ParamType.Email,

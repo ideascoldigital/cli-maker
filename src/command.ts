@@ -7,7 +7,8 @@ export enum ParamType {
   List = 'list',
   Boolean = 'boolean',
   Email = 'email',
-  Phone = 'phone'
+  Phone = 'phone',
+  Url = 'url',
 }
 
 export interface Command {
@@ -97,6 +98,11 @@ export class CLI {
       case ParamType.Email:
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid email:${Colors.Reset} ${value}` };
+        }
+        return { value };
+      case ParamType.Url:
+        if (!/^https?:\/\/.+\..+/.test(value)) {
+          return { error: `${Colors.FgRed}Invalid URL:${Colors.Reset} ${value}` };
         }
         return { value };
       default:
