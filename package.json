@@ -1,6 +1,6 @@
 {
   "name": "@ideascol/cli-maker",
-  "version": "1.5.5",
+  "version": "1.5.7",
   "description": "A library to help create CLIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

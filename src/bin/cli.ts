@@ -3,7 +3,7 @@
 import { execSync } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 
-import { CLI } from '../command';
+import { CLI, Command, ParamType } from '../command';
 
 const cli = new CLI("cli", "A simple CLI builder");
 
@@ -120,7 +120,10 @@ const tsconfigTemplate = `{
   "compilerOptions": {
     "rootDir": "./src"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "src/tests/**/*"
+  ]
 }
 `;
 
@@ -143,7 +146,7 @@ const tsconfigBaseTemplate = `{
 const tsconfigTestTemplate = `{
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "."
+    "rootDir": "./src"
   },
   "include": ["tests/**/*.ts", "src/**/*.ts"]
 }
@@ -275,7 +278,8 @@ async function addScriptsToPackageJson(
     packageJson.types = "dist/index.d.ts";
     packageJson.license = "MIT";
     packageJson.files = [
-      "dist"
+      "dist/**/*",
+      "!src/tests/**/*"
     ];
 
     packageJson.engines = {
@@ -340,25 +344,33 @@ async function initializeGit() {
   }
 }
 
-let command = {
+let command: Command = {
   name: 'create',
   description: 'Generate a base project for building a CLI',
   params: [
     {
       name: "name",
-      description: "The name of the library, ex: @company/awesome-cli"
+      description: "The name of the library, ex: @company/awesome-cli",
+      required: true,
+      type: ParamType.Text
     },
     {
       name: "description",
-      description: "The description of the library to create"
+      description: "The description of the library to create",
+      required: true,
+      type: ParamType.Text
     },
     {
       name: "author",
-      description: "The author of the library"
+      description: "The author of the library",
+      required: true,
+      type: ParamType.Text
     },
     {
       name: "email",
-      description: "The email of the author"
+      description: "The email of the author",
+      required: true,
+      type: ParamType.Email
     }
   ],
   action: async (args: any) => {
@@ -377,7 +389,8 @@ let command = {
 
     const newScripts = {
       "build": "tsc",
-      "test": "echo \"Error: no test specified\" && exit 0",
+      "build:test": "tsc -p tsconfig.test.json",
+      "test": "npm run build:test && node dist/tests/index.test.js",
       "prepublishOnly": "npm run build",
       "start": "npm run build && node ./dist/cli.js"
     };
