@@ -92,7 +92,18 @@ export class CLI {
         }
         return { value: Number(value) };
       case ParamType.List:
-        return { value: value.split(',') };
+        try {
+          const listValue = JSON.parse(value);
+          if (Array.isArray(listValue)) {
+            return { value: listValue };
+          } else if (typeof listValue === 'object') {
+            return { value: listValue };
+          } else {
+            return { error: `${Colors.FgRed}Invalid list or object:${Colors.Reset} ${value}` };
+          }
+        } catch {
+          return { error: `${Colors.FgRed}Invalid list or object:${Colors.Reset} ${value}` };
+        }
       case ParamType.Boolean:
         return { value: value.toLowerCase() === 'true' };
       case ParamType.Email:
@@ -101,7 +112,7 @@ export class CLI {
         }
         return { value };
       case ParamType.Url:
-        if (!/^https?:\/\/.+\..+/.test(value)) {
+        if (!/^https?:\/\/.+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid URL:${Colors.Reset} ${value}` };
         }
         return { value };
