@@ -1,12 +1,8 @@
-import test from "node:test";
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
+import test from 'node:test';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 
-import { CLI } from '../index';
-
-function stripAnsiCodes(str: string): string {
-  return str.replace(/[\u001b\u009b][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-}
+import { CLI, stripAnsiCodes } from '../index';
 
 describe("CLI", () => {
   test("Validate CLI default params", () => {

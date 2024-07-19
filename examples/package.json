@@ -4,7 +4,7 @@
   "description": "An example of how to use the cli-maker library",
   "main": "index.js",
   "scripts": {
-    "example": "node index.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "@ideascol/cli-maker": "*"

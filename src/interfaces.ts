@@ -17,10 +17,10 @@ export interface Command {
 }
 
 export interface CLIOptions {
-  interactive: boolean;
+  interactive?: boolean;
   version?: string;
   // @deprecated
-  askForMissingParam: boolean;
+  askForMissingParam?: boolean;
   // @deprecated
-  showAlwaysParams: boolean;
+  showAlwaysParams?: boolean;
 }
