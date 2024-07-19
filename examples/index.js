@@ -53,6 +53,7 @@ let commandEmail = {
     }
   ],
   action: (args) => {
+    console.log('EXAMPLE DATA');
     console.log(args);
   }
 }

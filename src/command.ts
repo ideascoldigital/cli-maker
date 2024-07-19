@@ -48,13 +48,15 @@ export class CLI {
       return;
     }
 
-    const params = this.parseArgs(args.slice(1));
+    const params = this.parseArgs(args.slice(1), command);
+    // console.log('Parsed Params:', params); DEBUG MESSAGE
     if (params.error) {
       console.log(params.error);
       return;
     }
 
-    const missingParams = command.params.filter(p => params.result && !params.result[p.name]);
+    const missingParams = command.params.filter(p => params.result && params.result[p.name] === undefined);
+    // console.log('Missing Params:', missingParams); // DEBUG MESSAGE
     if (missingParams.length > 0) {
       this.promptForMissingParams(missingParams, params.result || {}).then(fullParams => {
         command.action(fullParams);
@@ -64,13 +66,13 @@ export class CLI {
     }
   }
 
-  private parseArgs(args: string[]): { error?: string; result?: { [key: string]: any } } {
+  private parseArgs(args: string[], command: Command): { error?: string; result?: { [key: string]: any } } {
     const result: { [key: string]: any } = {};
     for (const arg of args) {
       const [key, value] = arg.split('=');
       if (key.startsWith('--')) {
         const paramName = key.slice(2);
-        const commandParam = this.findParamType(paramName);
+        const commandParam = command.params.find(p => p.name === paramName);
         if (commandParam) {
           const validation = this.validateParam(value, commandParam.type);
           if (validation.error) {
