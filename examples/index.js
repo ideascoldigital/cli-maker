@@ -39,6 +39,7 @@ let commandEmail = {
       name: 'tags',
       description: 'List of tags associated with the user, in JSON format (e.g., ["tag1", "tag2"] or {"key1": "value1", "key2": "value2"})',
       type: ParamType.List,
+      options: ["tag1", "tag2"],
     }
   ],
   action: (args) => {

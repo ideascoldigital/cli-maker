@@ -4,6 +4,7 @@ import { Colors } from './colors';
 export enum ParamType {
   Text = 'text',
   Number = 'number',
+  Custom = 'custom',
   List = 'list',
   Boolean = 'boolean',
   Email = 'email',
@@ -14,7 +15,7 @@ export enum ParamType {
 export interface Command {
   name: string;
   description: string;
-  params: { name: string; description: string; type?: ParamType }[];
+  params: { name: string; description: string; type?: ParamType; options?: any[] }[];
   action: (args: { [key: string]: any }) => void;
 }
 
@@ -91,19 +92,19 @@ export class CLI {
           return { error: `${Colors.FgRed}Invalid number:${Colors.Reset} ${value}` };
         }
         return { value: Number(value) };
-      case ParamType.List:
+      case ParamType.Custom:
         try {
-          const listValue = JSON.parse(value);
-          if (Array.isArray(listValue)) {
-            return { value: listValue };
-          } else if (typeof listValue === 'object') {
-            return { value: listValue };
+          const customValue = JSON.parse(value);
+          if (Array.isArray(customValue) || typeof customValue === 'object') {
+            return { value: customValue };
           } else {
-            return { error: `${Colors.FgRed}Invalid list or object:${Colors.Reset} ${value}` };
+            return { error: `${Colors.FgRed}Invalid custom value:${Colors.Reset} ${value}` };
           }
         } catch {
-          return { error: `${Colors.FgRed}Invalid list or object:${Colors.Reset} ${value}` };
+          return { error: `${Colors.FgRed}Invalid custom value:${Colors.Reset} ${value}` };
         }
+      case ParamType.List:
+        return { value: value };
       case ParamType.Boolean:
         return { value: value.toLowerCase() === 'true' };
       case ParamType.Email:
@@ -121,11 +122,11 @@ export class CLI {
     }
   }
 
-  private findParamType(paramName: string): { name: string; description: string; type?: ParamType } | undefined {
+  private findParamType(paramName: string): { name: string; description: string; type?: ParamType; options?: any[] } | undefined {
     return this.commands.flatMap(command => command.params).find(param => param.name === paramName);
   }
 
-  private promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
+  private promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -140,10 +141,25 @@ export class CLI {
         let answer: string;
         let validation: { error?: string; value?: any };
         do {
-          answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
-          validation = this.validateParam(answer, param.type);
-          if (validation.error) {
-            console.log(validation.error);
+          if (param.type === ParamType.List && param.options) {
+            console.log(`${Colors.FgYellow}Available options for ${param.name}:${Colors.Reset}`);
+            param.options.forEach((option, index) => {
+              console.log(`${Colors.FgGreen}${index}: ${option}${Colors.Reset}`);
+            });
+            answer = await askQuestion(`${Colors.FgYellow}Select an option (enter the index) for ${param.name}: ${Colors.Reset}`);
+            const index = parseInt(answer, 10);
+            if (isNaN(index) || index < 0 || index >= param.options.length) {
+              console.log(`${Colors.FgRed}Invalid selection. Please enter a valid index.${Colors.Reset}`);
+              validation = { error: "Invalid selection" };
+            } else {
+              validation = { value: param.options[index] };
+            }
+          } else {
+            answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
+            validation = this.validateParam(answer, param.type);
+            if (validation.error) {
+              console.log(validation.error);
+            }
           }
         } while (validation.error);
         return { ...answers, [param.name]: validation.value };
