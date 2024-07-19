@@ -2,23 +2,9 @@ const { CLI, ParamType } = require('@ideascol/cli-maker');
 
 const cli = new CLI("mycli", "A simple CLI", {
   version: "1.0.0",
-  askForMissingParam: true,
+  askForMissingParam: false,
   showAlwaysParams: true,
 });
-
-let commandGreet = {
-  name: 'greet',
-  description: 'Greet the user',
-  params: [{ name: 'name', description: 'The name of the user to greet', type: ParamType.Text }],
-  action: (args) => {
-    const name = args.name;
-    if (name) {
-      console.log(`Hello, ${name}!`);
-    } else {
-      console.log(`Error: Name parameter is required`);
-    }
-  }
-}
 
 let commandEmail = {
   name: 'email',
@@ -65,23 +51,5 @@ let commandEmail = {
 }
 
 cli.command(commandEmail);
-
-cli.command(commandGreet);
-
-let commandBye = {
-  name: 'bye',
-  description: 'Say goodbyes to the user',
-  params: [{ name: 'name', description: 'The name of the user to say goodbye to' }],
-  action: (args) => {
-    const name = args.name;
-    if (name) {
-      console.log(`Goodbye, ${name}!`);
-    } else {
-      console.log(`Error: Name parameter is required`);
-    }
-  }
-}
-
-cli.command(commandBye);
 
 cli.parse(process.argv);

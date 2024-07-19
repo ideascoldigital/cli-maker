@@ -102,16 +102,22 @@ export class CLI {
     return { result };
   }
 
-  private validateParam(value: string, type?: ParamType): { error?: string; value?: any } {
+  private validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean): { error?: string; value?: any } {
+    if (value === undefined && !isRequired) {
+      return { value };
+    } else if (value === undefined && isRequired) {
+      return { error: `${Colors.FgRed}Missing required parameter${Colors.Reset}` };
+    }
+
     switch (type) {
       case ParamType.Number:
-        if (!/^[0-9]+$/.test(value)) {
+        if (value !== undefined && !/^[0-9]+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid number:${Colors.Reset} ${value}` };
         }
         return { value: Number(value) };
       case ParamType.Custom:
         try {
-          const customValue = JSON.parse(value);
+          const customValue = value !== undefined && JSON.parse(value);
           if (Array.isArray(customValue) || typeof customValue === 'object') {
             return { value: customValue };
           } else {
@@ -123,17 +129,17 @@ export class CLI {
       case ParamType.List:
         return { value: value };
       case ParamType.Boolean:
-        if (value.toLowerCase() !== 'true' && value.toLowerCase() !== 'false') {
+        if (value !== undefined && value.toLowerCase() !== 'true' && value.toLowerCase() !== 'false') {
           return { error: `${Colors.FgRed}Invalid boolean:${Colors.Reset} ${value}` };
         }
-        return { value: value.toLowerCase() === 'true' };
+        return { value: value !== undefined && value.toLowerCase() === 'true' };
       case ParamType.Email:
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        if (value !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid email:${Colors.Reset} ${value}` };
         }
         return { value };
       case ParamType.Url:
-        if (!/^https?:\/\/.+$/.test(value)) {
+        if (value !== undefined && !/^https?:\/\/.+$/.test(value)) {
           return { error: `${Colors.FgRed}Invalid URL:${Colors.Reset} ${value}` };
         }
         return { value };
@@ -161,12 +167,14 @@ export class CLI {
             let answer: string;
             let validation: { error?: string; value?: any };
             if (param.type === ParamType.List && param.options) {
-                console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
+                const isRequired = param.required ? 'required' : '';
+                console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
                 answer = await this.promptWithArrows(param);
                 validation = { value: param.options[parseInt(answer, 10)] };
             } else {
                 do {
-                    answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
+                    const isRequired = param.required ? 'required' : '';
+                    answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
                     validation = this.validateParam(answer, param.type);
                     if (validation.error) {
                         console.log(validation.error);
