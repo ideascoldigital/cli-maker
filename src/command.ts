@@ -1,36 +1,13 @@
 import readline from 'readline';
 import { Colors } from './colors';
-
-export enum ParamType {
-  Text = 'text',
-  Number = 'number',
-  Custom = 'custom',
-  List = 'list',
-  Boolean = 'boolean',
-  Email = 'email',
-  Phone = 'phone',
-  Url = 'url',
-}
-
-export interface Command {
-  name: string;
-  description: string;
-  params: { name: string; description: string; type?: ParamType; required?: boolean; options?: any[] }[];
-  action: (args: { [key: string]: any }) => void;
-}
-
-export interface CLIOptions {
-  version?: string;
-  askForMissingParam: boolean;
-  showAlwaysParams: boolean;
-}
+import { ParamType, Command, CLIOptions } from './interfaces';
 
 export class CLI {
   private commands: Command[] = [];
 
   constructor(private name: string, private description: string, private options?: CLIOptions) {
     if (this.options == null) {
-      this.options = { askForMissingParam: false, version: '1.0.0', showAlwaysParams: true };
+      this.options = { askForMissingParam: false, version: '1.0.0', showAlwaysParams: true, interactive: true };
     }
   }
 

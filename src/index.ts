@@ -1,1 +1,2 @@
-export { CLI, Command, ParamType } from './command';
+export { CLI } from './command';
+export { CLIOptions, Command, ParamType } from './interfaces'

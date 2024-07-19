@@ -15,6 +15,7 @@ describe("CLI", () => {
     assert.equal(cli.getName(), "Demo CLI");
     assert.equal(cli.getDescription(), "A simple CLI to demonstrate the CLI library");
     assert.equal(cli.getCommands().length, 0);
+    assert.equal(cli.getOptions()?.interactive, true);
     assert.equal(cli.getOptions()?.askForMissingParam, false);
     assert.equal(cli.getOptions()?.showAlwaysParams, true);
     assert.equal(cli.getOptions()?.version, "1.0.0");
