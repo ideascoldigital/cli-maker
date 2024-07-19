@@ -107,7 +107,7 @@ export class CLI {
     return this.commands.flatMap(command => command.params).find(param => param.name === paramName);
   }
 
-  private promptForMissingParams(missingParams: { name: string; description: string }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
+  private promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -119,7 +119,7 @@ export class CLI {
 
     const prompts = missingParams.reduce((promise, param) => {
       return promise.then(async answers => {
-        const answer = await askQuestion(`${Colors.FgGreen}> (${param.name}) ${param.description}:${Colors.Reset} `);
+        const answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}) ${param.description}:${Colors.Reset} `);
         return { ...answers, [param.name]: answer };
       });
     }, Promise.resolve(existingParams));
@@ -146,7 +146,7 @@ export class CLI {
     if (command.params.length > 0) {
       console.log(`${Colors.FgGreen}Parameters:${Colors.Reset}`);
       command.params.forEach(param => {
-        console.log(`  ${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description}`);
+        console.log(`${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description}`);
       });
     }
   }
