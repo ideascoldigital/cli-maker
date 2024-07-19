@@ -1,12 +1,13 @@
 {
   "name": "@ideascol/cli-maker",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "A library to help create CLIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node dist/tests/index.test.js",
+    "build:test": "tsc -p tsconfig.test.json",
+    "test": "npm run build:test && node dist/tests/index.test.js",
     "prepublishOnly": "npm run build",
     "example": "tsc && tsc examples/example1.ts --outDir dist/examples && node dist/examples/example1.js"
   },
@@ -16,8 +17,12 @@
   "author": "Jairo Fernández",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist/**/*",
+    "!src/tests/**/*"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "@types/node": "^20.14.11",
     "typescript": "^5.5.3"
