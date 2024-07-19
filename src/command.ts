@@ -34,6 +34,22 @@ export class CLI {
     }
   }
 
+  public getCommands() {
+    return this.commands;
+  }
+
+  public getName() {
+    return this.name;
+  }
+
+  public getDescription() {
+    return this.description;
+  }
+
+  public getOptions() {
+    return this.options;
+  }
+
   public command(command: Command) {
     this.commands.push(command);
   }
@@ -41,15 +57,15 @@ export class CLI {
   public parse(argv: string[]) {
     const [nodePath, scriptPath, ...args] = argv;
     const commandName = args[0];
+
     if (!commandName) {
       this.help();
       return;
     }
 
-    const command = this.commands.find(cmd => cmd.name === commandName);
+    const command = this.findCommand(commandName);
     if (!command) {
-      console.log(`${Colors.FgRed}Unknown command: ${commandName}${Colors.Reset}`);
-      this.help();
+      this.showUnknownCommandError(commandName);
       return;
     }
 
@@ -64,20 +80,35 @@ export class CLI {
       return;
     }
 
-    const requiredParams = command.params.filter(p => p.required);
-    const optionalParams = command.params.filter(p => !p.required);
-    const missingParams = requiredParams.filter(p => params.result![p.name] === undefined);
-
+    const missingParams = this.getMissingParams(command, params.result!);
     if (missingParams.length > 0) {
-      if (this.options!.askForMissingParam) {
-        this.promptForMissingParams(missingParams, params.result || {}).then(fullParams => {
-          command.action(fullParams);
-        });
-      } else {
-        console.log(`${Colors.FgRed}Missing required parameters:${Colors.Reset} ${missingParams.map(p => p.name).join(', ')}`);
-      }
+      this.handleMissingParams(missingParams, params.result!, command);
     } else {
-      command.action(params.result || {});
+      command.action(params.result!);
+    }
+  }
+
+  private findCommand(commandName: string) {
+    return this.commands.find(cmd => cmd.name === commandName);
+  }
+
+  private showUnknownCommandError(commandName: string) {
+    console.log(`${Colors.FgRed}Unknown command: ${commandName}${Colors.Reset}`);
+    this.help();
+  }
+
+  private getMissingParams(command: Command, result: any) {
+    const requiredParams = command.params.filter(p => p.required === true);
+    return requiredParams.filter(p => result[p.name] === undefined);
+  }
+
+  private handleMissingParams(missingParams: any[], result: any, command: Command) {
+    if (this.options!.askForMissingParam) {
+      this.promptForMissingParams(missingParams, result).then(fullParams => {
+        command.action(fullParams);
+      });
+    } else {
+      console.log(`${Colors.FgRed}Missing required parameters:${Colors.Reset} ${missingParams.map(p => p.name).join(', ')}`);
     }
   }
 
@@ -191,7 +222,6 @@ export class CLI {
 
     return prompts.finally(() => rl.close());
   }
-
 
   private async promptWithArrows(param: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }): Promise<string> {
     return new Promise(resolve => {

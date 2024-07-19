@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 0",
+    "test": "npm run build && node dist/tests/index.test.js",
     "prepublishOnly": "npm run build",
     "example": "tsc && tsc examples/example1.ts --outDir dist/examples && node dist/examples/example1.js"
   },
