@@ -7,7 +7,13 @@ A library to help create CLIs with support for command parameters and interactiv
 To install the library, use npm:
 
 ```bash {"id":"01J34P9T5ZVP8QQZ5DMN0WF8WJ"}
-npm install @ideascol/cli-maker
+npm install -g @ideascol/cli-maker
+```
+
+## Create your own CLI
+
+```bash
+cli-maker
 ```
 
 ## Usage

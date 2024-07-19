@@ -5,7 +5,15 @@ import { promises as fs } from 'node:fs';
 
 import { CLI, Command, ParamType } from '../command';
 
-const cli = new CLI("cli", "A simple CLI builder");
+const cli = new CLI(
+  "cli",
+  "A simple CLI builder",
+  {
+    askForMissingParam: true,
+    version: '1.0.0',
+    showAlwaysParams: true,
+  }
+);
 
 const templateIndex = `export { Greet } from './lib';
 `;
