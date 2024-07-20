@@ -6,7 +6,10 @@ export const template = `import { CLI } from '@ideascol/cli-maker';
 
 import CommandGreet from './commands/greetCommand';
 
-const cli = new CLI('{{cliName}}', '{{cliDescription}}');
+const cli = new CLI('{{cliName}}', '{{cliDescription}}', {
+  interactive: true,
+  version: '1.0.0',
+});
 
 cli.command(CommandGreet);
 

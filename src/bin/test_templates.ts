@@ -10,7 +10,7 @@ describe("CLI", () => {
     assert.equal(cli.getDescription(), "{{cliDescription}}");
     assert.equal(cli.getCommands().length, 1);
     assert.equal(cli.getOptions()?.interactive, true);
-    assert.equal(cli.getOptions()?.version, undefined);
+    assert.equal(cli.getOptions()?.version, "1.0.0");
   });
 
   test("required params for first command", () => {
