@@ -125,7 +125,7 @@ export async function createCliTestFile(cliName: string, cliDescription: string)
   const result = test_templates.testCli.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
 
   try {
-    await createFileWithDirectories('tests/cli/cli.test.ts', result);
+    await createFileWithDirectories('src/tests/cli/cli.test.ts', result);
     console.log('cli.test.ts has been generated!');
   } catch (err) {
     console.error('Failed to generate cli.test.ts:', err);
@@ -134,7 +134,7 @@ export async function createCliTestFile(cliName: string, cliDescription: string)
 
 export async function createTestLibFile() {
   try {
-    await createFileWithDirectories('tests/lib/lib.test.ts', test_templates.testLib);
+    await createFileWithDirectories('src/tests/lib/lib.test.ts', test_templates.testLib);
     console.log('lib.test.ts has been generated!');
   } catch (err) {
     console.error('Failed to generate lib.test.ts:', err);

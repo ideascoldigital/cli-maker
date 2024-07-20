@@ -48,7 +48,7 @@ export const createCommand: Command = {
     const newScripts = {
       "build": "tsc",
       "build:test": "tsc -p tsconfig.test.json",
-      "test": "npm run build:test && for file in dist/tests/*.test.js; do node \"$file\"; done",
+      "test": "npm run build:test && find dist/tests -name '*.test.js' -exec node {} \\;",
       "prepublishOnly": "npm run build",
       "start": "npm run build && node ./dist/cli.js"
     };
