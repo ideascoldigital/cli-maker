@@ -5,7 +5,7 @@ const cli = new CLI("mycli", "A simple CLI", {
   version: '1.0.0',
 });
 
-let commandEmail = {
+let commandExample = {
   name: 'all-params',
   description: 'Show all params',
   params: [
@@ -57,6 +57,6 @@ let commandEmail = {
   }
 }
 
-cli.command(commandEmail);
+cli.command(commandExample);
 
 cli.parse(process.argv);
