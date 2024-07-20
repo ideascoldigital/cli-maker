@@ -10,32 +10,32 @@ let commandEmail = {
   description: 'Show all params',
   params: [
     {
-      name: 'fruta_favorita',
-      description: 'The name of the user to greet',
+      name: 'favorite_fruit',
+      description: 'select your favorite fruit',
       required: true,
       type: ParamType.List,
       options: ['manzana', 'pera', 'uva']
     },
     {
       name: 'url',
-      description: 'The URL of the user to get the email',
+      description: 'The URL of your website',
       type: ParamType.Url,
       required: true
     },
     {
       name: "is_ok",
-      description: "Is the user ok?",
+      description: "Is the user ok? (true or false)",
       type: ParamType.Boolean,
     },
     {
       name: 'email',
-      description: 'The name of the user to get the email',
+      description: 'The email',
       type: ParamType.Email,
       required: true
     },
     {
       name: 'age',
-      description: 'The age of the user to get the email',
+      description: 'The age of the user',
       type: ParamType.Number,
     },
     {
@@ -48,7 +48,7 @@ let commandEmail = {
       name: 'tags',
       description: '(["tag1", "tag2"] or {"key1": "value1", "key2": "value2"})',
       type: ParamType.Custom,
-      required: true,
+      required: false,
     }
   ],
   action: (args) => {
