@@ -12,7 +12,7 @@ cli.command(CommandGreet);
 
 cli.parse(process.argv);
 
-export default cli;
+export { cli };
 `;
 
 export const templateReadme = `# {{cliName}}
@@ -55,6 +55,8 @@ const Greet = (name: string) => {
   console.log(message);
   return message;
 }
+
+export { Greet };
 `;
 
 export const templateBin = `#!/usr/bin/env node
