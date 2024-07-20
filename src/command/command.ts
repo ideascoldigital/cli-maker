@@ -206,7 +206,7 @@ export class CLI {
           validation = { value: param.options[parseInt(answer, 10)] };
         } else {
           do {
-            const isRequired = param.required ? '(required) ' : '';
+            const isRequired = param.required ? '(required) ' : '(Enter to skip) ';
             const message = `\n${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}\n${Colors.FgYellow}> ${Colors.Reset}${Colors.FgGray}${isRequired}${param.description}:${Colors.Reset}\n`;
 
             answer = await askQuestion(message);
@@ -214,7 +214,7 @@ export class CLI {
             if (validation.error) {
               console.log(validation.error);
             }
-          } while (validation.error && param.required);
+          } while (validation.error);
         }
         return { ...answers, [param.name]: validation.value };
       });
