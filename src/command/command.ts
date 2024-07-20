@@ -56,8 +56,8 @@ export class CLI {
 
     const params = this.parseArgs(args.slice(1), command);
     if (params.error) {
-      console.log(params.error);
-      return;
+      console.log(`\n${params.error}`);
+      process.exit(1)
     }
 
     if(Object.keys(params.result!).length > 0) {
@@ -67,7 +67,7 @@ export class CLI {
     }
 
     const missingParams = this.getMissingParams(command, params.result!);
-    // console.log("missing params", missingParams)
+
     if (missingParams.length > 0 && this.options?.interactive) {
       this.handleMissingParams(command.params, params.result!, command);
     } else {
@@ -76,15 +76,25 @@ export class CLI {
 
         missingParams.map((param) => {
           console.log(`> ${Colors.FgRed}${param.name}${Colors.Reset}`)
+          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`)
+          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`)
+          if(param.options) {
+            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`)
+          }
         })
 
         console.log(`\n${Colors.FgYellow}Optional missing params${Colors.Reset}\n`)
 
         this.getOptionalParams(command, params.result!).map((param) => {
           console.log(`> ${Colors.FgYellow}${param.name}${Colors.Reset}`)
+          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`)
+          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`)
+          if(param.options) {
+            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`)
+          }
         })
 
-        return
+        process.exit(1)
       }
 
       command.action(params.result!);
