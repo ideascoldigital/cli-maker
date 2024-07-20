@@ -199,14 +199,17 @@ export class CLI {
         let answer: string;
         let validation: { error?: string; value?: any };
         if (param.type === ParamType.List && param.options) {
-          const isRequired = param.required ? 'required' : '';
-          console.log(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
+          const isRequired = param.required ? '(required) ' : '';
+          console.log(`\n${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset} `);
+          console.log(`${Colors.FgYellow}> ${Colors.Reset}${Colors.FgGray}${isRequired}${param.description}:${Colors.Reset}\n`);
           answer = await this.promptWithArrows(param);
           validation = { value: param.options[parseInt(answer, 10)] };
         } else {
           do {
-            const isRequired = param.required ? 'required' : '';
-            answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
+            const isRequired = param.required ? '(required) ' : '';
+            const message = `\n${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}\n${Colors.FgYellow}> ${Colors.Reset}${Colors.FgGray}${isRequired}${param.description}:${Colors.Reset}\n`;
+
+            answer = await askQuestion(message);
             validation = this.validateParam(answer, param.type, param.required, param.options);
             if (validation.error) {
               console.log(validation.error);
