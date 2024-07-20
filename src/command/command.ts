@@ -60,10 +60,33 @@ export class CLI {
       return;
     }
 
+    if(Object.keys(params.result!).length > 0) {
+      if(this.options!.interactive) {
+        this.options!.interactive = false;
+      }
+    }
+
     const missingParams = this.getMissingParams(command, params.result!);
-    if (missingParams.length > 0) {
-      this.handleMissingParams(missingParams, params.result!, command);
+    // console.log("missing params", missingParams)
+    if (missingParams.length > 0 && this.options?.interactive) {
+      this.handleMissingParams(command.params, params.result!, command);
     } else {
+      if(missingParams.length > 0) {
+        console.log(`\n${Colors.FgRed}error missing params${Colors.Reset}\n`)
+
+        missingParams.map((param) => {
+          console.log(`> ${Colors.FgRed}${param.name}${Colors.Reset}`)
+        })
+
+        console.log(`\n${Colors.FgYellow}Optional missing params${Colors.Reset}\n`)
+
+        this.getOptionalParams(command, params.result!).map((param) => {
+          console.log(`> ${Colors.FgYellow}${param.name}${Colors.Reset}`)
+        })
+
+        return
+      }
+
       command.action(params.result!);
     }
   }
@@ -106,6 +129,11 @@ export class CLI {
     return requiredParams.filter(p => result[p.name] === undefined);
   }
 
+  private getOptionalParams(command: Command, result: any) {
+    const optionalParams = command.params.filter(p => p.required === false ||p.required === undefined);
+    return optionalParams.filter(p => result[p.name] === undefined);
+  }
+
   private handleMissingParams(missingParams: any[], result: any, command: Command) {
     if (this.options!.interactive) {
       this.promptForMissingParams(missingParams, result).then(fullParams => {
@@ -131,7 +159,7 @@ export class CLI {
           }
           result[paramName] = validation.value;
         } else {
-          result[paramName] = value;
+          return { error: `\nParam ${Colors.FgRed}${paramName}${Colors.Reset} ${Colors.Bright}is not allowed${Colors.Reset}` }
         }
       }
     }
