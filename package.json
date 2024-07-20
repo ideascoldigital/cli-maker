@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "build:test": "tsc -p tsconfig.test.json",
-    "test": "npm run build:test && node dist/tests/index.test.js",
+    "test": "npm run build:test && for file in dist/tests/*.test.js; do node \"$file\"; done",
     "prepublishOnly": "npm run build",
     "example": "tsc && tsc examples/example1.ts --outDir dist/examples && node dist/examples/example1.js"
   },
