@@ -1,4 +1,5 @@
 export const templateIndex = `export { Greet } from './lib';
+export { cli } from './cli';
 `;
 
 export const template = `import { CLI } from '@ideascol/cli-maker';
@@ -10,14 +11,22 @@ const cli = new CLI('{{cliName}}', '{{cliDescription}}');
 cli.command(CommandGreet);
 
 cli.parse(process.argv);
+
+export default cli;
 `;
 
 export const templateReadme = `# {{cliName}}
 
 {{cliDescription}}
 
-## Installation
+## Quick start
+\`\`\`bash
+npx {{cliName}}
 \`\`\`
+
+## Installation
+
+\`\`\`bash
 npm install -g {{cliName}}
 \`\`\`
 
@@ -42,10 +51,10 @@ Greet('John'); // should print 'Hello, John!'
 
 export const templateGreet = `// Greet example
 const Greet = (name: string) => {
-  console.log(\`Hello, \${name}!\`);
+  const message = \`Hello, \${name}!\`;
+  console.log(message);
+  return message;
 }
-
-export { Greet };
 `;
 
 export const templateBin = `#!/usr/bin/env node
@@ -111,7 +120,9 @@ jobs:
 export const tsconfigTemplate = `{
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": false
   },
   "include": ["src/**/*.ts"],
   "exclude": [

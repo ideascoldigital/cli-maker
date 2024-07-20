@@ -53,13 +53,7 @@ describe("CLI", () => {
     cli.command(command);
 
     test("should show error when param required is not provided", () => {
-      cli = new CLI(
-        "Demo CLI",
-        "A simple CLI to demonstrate the CLI library",
-        {
-          interactive: false
-        }
-      );
+      cli.setOptions({ interactive: false });
 
       const argv = ["", "", "test", "--param2=value1"];
 
@@ -89,7 +83,7 @@ describe("CLI", () => {
       } catch (error) {
         assert.equal(capturedExitCode, 1, "Expected exit code 1");
         const cleanedOutput = stripAnsiCodes(output);
-        assert.match(cleanedOutput, /Missing required parameters: param1/, "Expected error message about missing required parameters");
+        assert.match(cleanedOutput, /\nerror missing params\n\n> param1\n  > Type: undefined\n  > Description: param1 description\n\nOptional missing params\n\n/, "Expected error message about missing required parameters");
       } finally {
         process.exit = originalProcessExit;
         process.stdout.write = originalWrite;

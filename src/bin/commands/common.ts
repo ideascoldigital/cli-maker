@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 
 import * as templates from '../templates'
+import * as test_templates from '../test_templates'
 
 export async function initializeProject() {
   console.log('Generating base project...');
@@ -120,6 +121,25 @@ export async function createReadmeFile(cliName: string, cliDescription: string) 
   }
 }
 
+export async function createCliTestFile(cliName: string, cliDescription: string) {
+  const result = test_templates.testCli.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
+
+  try {
+    await createFileWithDirectories('tests/cli/cli.test.ts', result);
+    console.log('cli.test.ts has been generated!');
+  } catch (err) {
+    console.error('Failed to generate cli.test.ts:', err);
+  }
+}
+
+export async function createTestLibFile() {
+  try {
+    await createFileWithDirectories('tests/lib/lib.test.ts', test_templates.testLib);
+    console.log('lib.test.ts has been generated!');
+  } catch (err) {
+    console.error('Failed to generate lib.test.ts:', err);
+  }
+}
 
 export async function initializeGit() {
   try {

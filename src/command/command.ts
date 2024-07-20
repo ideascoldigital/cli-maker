@@ -34,6 +34,10 @@ export class CLI {
     this.commands.push(command);
   }
 
+  public setOptions(options: CLIOptions) {
+    this.options = options;
+  }
+
   public parse(argv: string[]) {
     const [nodePath, scriptPath, ...args] = argv;
     const commandName = args[0];

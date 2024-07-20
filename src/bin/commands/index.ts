@@ -48,7 +48,7 @@ export const createCommand: Command = {
     const newScripts = {
       "build": "tsc",
       "build:test": "tsc -p tsconfig.test.json",
-      "test": "npm run build:test && node dist/tests/index.test.js",
+      "test": "npm run build:test && for file in dist/tests/*.test.js; do node \"$file\"; done",
       "prepublishOnly": "npm run build",
       "start": "npm run build && node ./dist/cli.js"
     };
@@ -56,6 +56,8 @@ export const createCommand: Command = {
     await libraries.addScriptsToPackageJson(newScripts, name, description, author, email);
     await commons.createBinFile();
     await commons.createReadmeFile(name, description);
+    await commons.createCliTestFile(name, description);
+    await commons.createTestLibFile();
     await libraries.installDependencies();
     await commons.initializeGit();
 

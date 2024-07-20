@@ -1,7 +1,7 @@
 const { CLI, ParamType } = require('@ideascol/cli-maker');
 
 const cli = new CLI("mycli", "A simple CLI", {
-  interactive: true,
+  interactive: false,
   version: '1.0.0',
 });
 
