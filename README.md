@@ -2,6 +2,12 @@
 
 A library to help create CLIs with support for command parameters and interactive prompts.
 
+## Quick start
+
+```bash
+npx @ideascol/cli-maker
+```
+
 ## Installation
 
 To install the library, use npm:

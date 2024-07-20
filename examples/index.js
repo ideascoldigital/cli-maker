@@ -12,6 +12,13 @@ let commandEmail = {
   description: 'Get the email of the user',
   params: [
     {
+      name: 'fruta_favorita',
+      description: 'The name of the user to greet',
+      required: true,
+      type: ParamType.List,
+      options: ['manzana', 'pera', 'uva']
+    },
+    {
       name: 'url',
       description: 'The URL of the user to get the email',
       type: ParamType.Url,
