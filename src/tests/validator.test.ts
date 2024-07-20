@@ -22,7 +22,7 @@ describe('Validator', () => {
       description: "Boolean empty not required",
       data: "",
       type: ParamType.Boolean,
-      expectedError: "Invalid boolean: ",
+      expectedError: "",
       expectedValue: undefined,
       required: false,
     },
@@ -33,6 +33,14 @@ describe('Validator', () => {
       expectedError: "Invalid boolean: trues",
       expectedValue: undefined,
       required: true,
+    },
+    {
+      description: "Boolean bad format not required, should return error, but the value is undefined",
+      data: "trues",
+      type: ParamType.Boolean,
+      expectedError: "Invalid boolean: trues",
+      expectedValue: undefined,
+      required: false,
     },
     {
       description: "Boolean true",

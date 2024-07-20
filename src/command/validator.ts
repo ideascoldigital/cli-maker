@@ -8,10 +8,10 @@ export interface ValidatorResult {
 
 export class Validator {
   public validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean): ValidatorResult {
-    if ((value === undefined || value === '' || value === null) && isRequired) {
+    if (this.checkEmpty(value) && isRequired) {
       return { error: `${Colors.FgRed}Missing required parameter${Colors.Reset}` };
-    } else if (value === undefined && !isRequired) {
-      return { value };
+    } else if (this.checkEmpty(value) && !isRequired) {
+      return { value: undefined, error: "" };
     }
 
     if (value === undefined) {
@@ -55,5 +55,9 @@ export class Validator {
       default:
         return { value };
     }
+  }
+
+  private checkEmpty(value: any){
+    return value === undefined || value === '' || value === null
   }
 }
