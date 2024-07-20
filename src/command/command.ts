@@ -68,6 +68,30 @@ export class CLI {
     }
   }
 
+  public help() {
+    console.log("");
+    console.log(`${Colors.Bright}Welcome to ${Colors.FgGreen}${this.name}${Colors.Reset}`);
+    console.log("");
+    console.log(`${Colors.FgYellow}${this.description}${Colors.Reset}`);
+    console.log("");
+    console.log(`${Colors.Bright}Available commands:${Colors.Reset}`);
+    this.commands.forEach(cmd => {
+      console.log(`${Colors.FgGreen}  ${cmd.name}${Colors.Reset}: ${cmd.description}`);
+    });
+    console.log("");
+  }
+
+  private commandHelp(command: Command) {
+    console.log(`${Colors.Bright}Help for command: ${Colors.FgGreen}${command.name}${Colors.Reset}`);
+    console.log(`${Colors.FgGreen}Description:${Colors.Reset} ${command.description}`);
+    if (command.params.length > 0) {
+      console.log(`${Colors.FgGreen}Parameters:${Colors.Reset}`);
+      command.params.forEach(param => {
+        console.log(`${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description} ${param.required ? '(required)' : ''}`);
+      });
+    }
+  }
+
   private findCommand(commandName: string) {
     return this.commands.find(cmd => cmd.name === commandName);
   }
@@ -190,29 +214,5 @@ export class CLI {
         process.stdin.on('keypress', keypressHandler);
         renderOptions();
     });
-  }
-
-  public help() {
-    console.log("");
-    console.log(`${Colors.Bright}Welcome to ${Colors.FgGreen}${this.name}${Colors.Reset}`);
-    console.log("");
-    console.log(`${Colors.FgYellow}${this.description}${Colors.Reset}`);
-    console.log("");
-    console.log(`${Colors.Bright}Available commands:${Colors.Reset}`);
-    this.commands.forEach(cmd => {
-      console.log(`${Colors.FgGreen}  ${cmd.name}${Colors.Reset}: ${cmd.description}`);
-    });
-    console.log("");
-  }
-
-  private commandHelp(command: Command) {
-    console.log(`${Colors.Bright}Help for command: ${Colors.FgGreen}${command.name}${Colors.Reset}`);
-    console.log(`${Colors.FgGreen}Description:${Colors.Reset} ${command.description}`);
-    if (command.params.length > 0) {
-      console.log(`${Colors.FgGreen}Parameters:${Colors.Reset}`);
-      command.params.forEach(param => {
-        console.log(`${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description} ${param.required ? '(required)' : ''}`);
-      });
-    }
   }
 }
