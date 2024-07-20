@@ -7,7 +7,7 @@ export interface ValidatorResult {
 }
 
 export class Validator {
-  public validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean): ValidatorResult {
+  public validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[]): ValidatorResult {
     if (this.checkEmpty(value) && isRequired) {
       return { error: `${Colors.FgRed}Missing required parameter${Colors.Reset}` };
     } else if (this.checkEmpty(value) && !isRequired) {
@@ -36,6 +36,13 @@ export class Validator {
           return { error: `${Colors.FgRed}Invalid custom value:${Colors.Reset} ${value}` };
         }
       case ParamType.List:
+        if (options === undefined || options?.length === 0) {
+          return { error: `${Colors.FgRed}Invalid List:${Colors.Reset} empty options`, value: undefined }
+        }
+        const foundValue = options?.filter(x => x === value)
+        if (foundValue?.length === 0) {
+          return { error: `${Colors.FgRed}Invalid List:${Colors.Reset} ${value} doesn't exists`, value: undefined }
+        }
         return { value: value };
       case ParamType.Boolean:
         if (value.toLowerCase() !== 'true' && value.toLowerCase() !== 'false') {

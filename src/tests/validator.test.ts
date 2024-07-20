@@ -212,6 +212,56 @@ describe('Validator', () => {
 
     runCases(cases, validator);
   })
+
+  describe('List validations', () => {
+    const cases: any = [
+      {
+        description: "List empty value required should return Missing required parameter",
+        data: "",
+        type: ParamType.List,
+        expectedError: "Missing required parameter",
+        expectedValue: undefined,
+        required: true,
+      },
+      {
+        description: "List options empty required should return empty options error",
+        data: "some",
+        type: ParamType.List,
+        expectedError: "Invalid List: empty options",
+        expectedValue: undefined,
+        required: true,
+      },
+      {
+        description: "list empty not required, should return undefined without error",
+        data: "",
+        type: ParamType.List,
+        expectedError: "",
+        expectedValue: undefined,
+        required: false,
+      },
+      {
+        description: "list ok",
+        data: "tomate",
+        type: ParamType.List,
+        expectedError: "",
+        expectedValue: "tomate",
+        required: true,
+        options: ["pera", "tomate", "banana"]
+      },
+      {
+        description: "list with not existing option",
+        data: "zarzamora",
+        type: ParamType.List,
+        expectedError: "Invalid List: zarzamora doesn't exists",
+        expectedValue: undefined,
+        required: true,
+        options: ["pera", "tomate", "banana"]
+      },
+
+    ];
+
+    runCases(cases, validator);
+  })
 })
 
 
@@ -224,7 +274,7 @@ function runCases(cases: any, validator: Validator) {
 
 function executeTest(caseTest: any, validator: Validator) {
   test(caseTest.description, () => {
-    const result = validator.validateParam(caseTest.data, caseTest.type, caseTest.required);
+    const result = validator.validateParam(caseTest.data, caseTest.type, caseTest.required, caseTest.options);
     const actualError = stripAnsiCodes(result.error || "");
 
     assert.equal(actualError, caseTest.expectedError, "Error message");
