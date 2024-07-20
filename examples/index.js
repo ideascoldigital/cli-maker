@@ -2,14 +2,12 @@ const { CLI, ParamType } = require('@ideascol/cli-maker');
 
 const cli = new CLI("mycli", "A simple CLI", {
   interactive: true,
-  askForMissingParam: true,
   version: '1.0.0',
-  showAlwaysParams: true,
 });
 
 let commandEmail = {
-  name: 'email',
-  description: 'Get the email of the user',
+  name: 'all-params',
+  description: 'Show all params',
   params: [
     {
       name: 'fruta_favorita',
@@ -48,8 +46,9 @@ let commandEmail = {
     },
     {
       name: 'tags',
-      description: '(e.g., ["tag1", "tag2"] or {"key1": "value1", "key2": "value2"})',
+      description: '(["tag1", "tag2"] or {"key1": "value1", "key2": "value2"})',
       type: ParamType.Custom,
+      required: true,
     }
   ],
   action: (args) => {

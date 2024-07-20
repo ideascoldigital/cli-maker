@@ -19,8 +19,4 @@ export interface Command {
 export interface CLIOptions {
   interactive?: boolean;
   version?: string;
-  // @deprecated
-  askForMissingParam?: boolean;
-  // @deprecated
-  showAlwaysParams?: boolean;
 }

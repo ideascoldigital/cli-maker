@@ -9,7 +9,7 @@ export class CLI {
 
   constructor(private name: string, private description: string, private options?: CLIOptions) {
     if (this.options == null) {
-      this.options = { interactive: true, askForMissingParam: false, version: '1.0.0', showAlwaysParams: true };
+      this.options = { interactive: true, version: '1.0.0' };
     }
     this.validator = new Validator()
   }
@@ -107,7 +107,7 @@ export class CLI {
   }
 
   private handleMissingParams(missingParams: any[], result: any, command: Command) {
-    if (this.options!.askForMissingParam) {
+    if (this.options!.interactive) {
       this.promptForMissingParams(missingParams, result).then(fullParams => {
         command.action(fullParams);
       });
@@ -125,7 +125,7 @@ export class CLI {
         const paramName = key.slice(2);
         const commandParam = command.params.find(p => p.name === paramName);
         if (commandParam) {
-          const validation = this.validateParam(value, commandParam.type, commandParam.required);
+          const validation = this.validateParam(value, commandParam.type, commandParam.required, commandParam.options);
           if (validation.error) {
             return { error: validation.error };
           }
@@ -138,8 +138,8 @@ export class CLI {
     return { result };
   }
 
-  private validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean): ValidatorResult {
-    return this.validator.validateParam(value, type, isRequired)
+  private validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[]): ValidatorResult {
+    return this.validator.validateParam(value, type, isRequired, options)
   }
 
   private findParamType(paramName: string): { name: string; description: string; type?: ParamType; required?: boolean; options?: any[] } | undefined {
@@ -169,7 +169,7 @@ export class CLI {
           do {
             const isRequired = param.required ? 'required' : '';
             answer = await askQuestion(`${Colors.FgYellow}(${param.type})>${Colors.Reset}  ${Colors.FgGreen}(${param.name}-${isRequired}) ${param.description}:${Colors.Reset} `);
-            validation = this.validateParam(answer, param.type, param.required);
+            validation = this.validateParam(answer, param.type, param.required, param.options);
             if (validation.error) {
               console.log(validation.error);
             }

@@ -8,9 +8,7 @@ const cli = new CLI(
   "A simple CLI builder",
   {
     interactive: true,
-    askForMissingParam: true,
     version: '1.0.0',
-    showAlwaysParams: true,
   }
 );
 
