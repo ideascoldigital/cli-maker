@@ -227,33 +227,56 @@ export class CLI {
     return new Promise(resolve => {
         let index = 0;
         const options = param.options!;
+
         const renderOptions = () => {
+          options.forEach((option, i) => {
             process.stdout.write('\x1B[2K\x1B[0G');
-            options.forEach((option, i) => {
-                if (i === index) {
-                    process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
-                } else {
-                    process.stdout.write(`  ${option}\n`);
-                }
-            });
-            process.stdout.write('\x1B[1A'.repeat(options.length)); // Move the cursor back up
+            if (i === index) {
+              process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
+            } else {
+              process.stdout.write(`  ${option}\n`);
+            }
+          });
+          process.stdout.write(`\x1B[${options.length}A`);
+        };
+
+        const clearLines = (numLines: number) => {
+          for (let i = 0; i < numLines; i++) {
+              process.stdout.write('\x1B[2K\x1B[1A');
+          }
+          process.stdout.write('\x1B[2K\x1B[0G');
         };
 
         const keypressHandler = (str: string, key: readline.Key) => {
-            if (key.name === 'up') {
-                index = (index > 0) ? index - 1 : options.length - 1;
-                renderOptions();
-            } else if (key.name === 'down') {
-                index = (index + 1) % options.length;
-                renderOptions();
-            } else if (key.name === 'return') {
-                process.stdin.removeListener('keypress', keypressHandler);
-                resolve(index.toString());
-            }
+          if (key.name === 'up') {
+            index = (index > 0) ? index - 1 : options.length - 1;
+            renderOptions();
+          } else if (key.name === 'down') {
+            index = (index + 1) % options.length;
+            renderOptions();
+          } else if (key.name === 'return') {
+            process.stdin.removeListener('keypress', keypressHandler);
+            clearLines(options.length);
+            options.forEach((option, i) => {
+              if (i === index) {
+                process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
+              } else {
+                process.stdout.write(`  ${option}\n`);
+              }
+            });
+            process.stdout.write(`\nSelected: ${options[index]}\n`);
+            resolve(index.toString());
+            return;
+          }
         };
+
+        readline.emitKeypressEvents(process.stdin);
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
 
         process.stdin.on('keypress', keypressHandler);
         renderOptions();
     });
-  }
+}
 }
