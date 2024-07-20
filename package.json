@@ -1,9 +1,13 @@
 {
   "name": "@ideascol/cli-maker",
-  "version": "1.5.10",
-  "description": "A library to help create CLIs",
+  "version": "1.5.11",
+  "description": "A simple library to help create CLIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "homepage": "https://github.com/ideascoldigital/cli-maker",
+  "bugs": {
+    "url": "https://github.com/ideascoldigital/cli-maker/issues"
+  },
   "scripts": {
     "build": "tsc",
     "build:test": "tsc -p tsconfig.test.json",
@@ -26,5 +30,13 @@
   "devDependencies": {
     "@types/node": "^20.14.11",
     "typescript": "^5.5.3"
-  }
+  },
+  "keywords": [
+    "cli",
+    "command",
+    "line",
+    "interface",
+    "maker",
+    "simple-cli"
+  ]
 }
