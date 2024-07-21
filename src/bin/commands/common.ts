@@ -11,10 +11,9 @@ export async function initializeProject() {
 
 export async function createProjectStructure() {
   console.log('Creating project structure...');
-  execSync('mkdir -p src/commands src/utils', { stdio: 'inherit' });
+  execSync('mkdir -p src/commands src/utils src/tests', { stdio: 'inherit' });
   execSync('touch src/index.ts', { stdio: 'inherit' });
   execSync('mkdir dist', { stdio: 'inherit' });
-  execSync('mkdir tests', { stdio: 'inherit' });
 }
 
 export async function createGitIgnore() {
