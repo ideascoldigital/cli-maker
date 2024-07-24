@@ -262,6 +262,53 @@ describe('Validator', () => {
 
     runCases(cases, validator);
   })
+
+  describe('package validations', () => {
+    const cases: any = [
+      {
+        description: "package empty required should return Missing required parameter",
+        data: "",
+        type: ParamType.Package,
+        expectedError: "Missing required parameter",
+        expectedValue: undefined,
+        required: true,
+      },
+      {
+        description: "package empty not required, should return undefined without error",
+        data: "whatever",
+        type: ParamType.Package,
+        expectedError: "the format of the package is not correct, @company/package-name",
+        expectedValue: undefined,
+        required: false,
+      },
+      {
+        description: "package bad format required",
+        data: "badpackagecom",
+        type: ParamType.Package,
+        expectedError: "the format of the package is not correct, @company/package-name",
+        expectedValue: undefined,
+        required: true,
+      },
+      {
+        description: "package bad format not required, should return error, but the value is undefined",
+        data: "badurlcom",
+        type: ParamType.Package,
+        expectedError: "the format of the package is not correct, @company/package-name",
+        expectedValue: undefined,
+        required: false,
+      },
+      {
+        description: "pacakge ok",
+        data: "@good/package",
+        type: ParamType.Package,
+        expectedError: "",
+        expectedValue: "@good/package",
+        required: true,
+      },
+    ];
+
+    runCases(cases, validator);
+  })
 })
 
 

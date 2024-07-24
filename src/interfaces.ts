@@ -7,6 +7,7 @@ export enum ParamType {
   Email = 'email',
   Phone = 'phone',
   Url = 'url',
+  Package = "Package",
 }
 
 export interface Command {

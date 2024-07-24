@@ -10,7 +10,7 @@ export const createCommand: Command = {
       name: "name",
       description: "The name of the library, ex: @company/awesome-cli",
       required: true,
-      type: ParamType.Text
+      type: ParamType.Package
     },
     {
       name: "description",

@@ -59,6 +59,11 @@ export class Validator {
           return { error: `${Colors.FgRed}Invalid URL:${Colors.Reset} ${value}` };
         }
         return { value };
+      case ParamType.Package:
+        if (!/^@[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(value)) {
+          return { error: `${Colors.FgRed}the format of the package is not correct, @company/package-name${Colors.Reset}` };
+        }
+        return { value };
       default:
         return { value };
     }
