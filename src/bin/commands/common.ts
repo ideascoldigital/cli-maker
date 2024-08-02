@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { promises as fs, readdirSync } from 'node:fs';
+import { promises as fs, readdirSync, mkdirSync } from 'node:fs';
 
 import * as templates from '../templates'
 import * as test_templates from '../test_templates'
@@ -151,8 +151,16 @@ export async function initializeGit() {
     console.error('Failed to initialize git:', err);
   }
 }
+
 export function isFolderEmpty() : boolean {
   const files = readdirSync('.');
   return files.length === 0;
 }
 
+export function createNewFolder(name: string) {
+  mkdirSync(name);
+}
+
+export function moveToFolder(name: string) {
+  process.chdir(name);
+}

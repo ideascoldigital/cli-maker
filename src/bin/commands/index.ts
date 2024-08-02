@@ -36,17 +36,16 @@ export const createCommand: Command = {
       required: true,
       type: ParamType.List,
       options: ['yes', 'no']
-    }
+    },
   ],
   action: async (args: any) => {
     const {name, description, author, email} = args;
 
     const isEmpty = commons.isFolderEmpty();
     if (!isEmpty) {
-      console.error('The folder is not empty. Please run the command in an empty folder.');
-      return;
+      commons.createNewFolder(name);
+      commons.moveToFolder(name);
     }
-
 
     await commons.initializeProject();
     await commons.createTsConfigFiles();
