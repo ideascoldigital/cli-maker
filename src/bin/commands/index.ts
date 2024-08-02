@@ -73,7 +73,12 @@ export const createCommand: Command = {
     await commons.createCliTestFile(name, description);
     await commons.createTestLibFile();
     await libraries.installDependencies();
-    await commons.initializeGit();
+
+    if (args.git_init === 'yes') {
+      await commons.initializeGit();
+    } else {
+      console.log('Skipping git initialization.');
+    }
 
     console.log('Project initialized successfully.');
   }

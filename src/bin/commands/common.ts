@@ -158,9 +158,13 @@ export function isFolderEmpty() : boolean {
 }
 
 export function createNewFolder(name: string) {
-  mkdirSync(name, { recursive: true });
+  const currentDir = process.cwd();
+  const newFolderPath = `${currentDir}/${name}`;
+  mkdirSync(newFolderPath, { recursive: true });
 }
 
 export function moveToFolder(name: string) {
-  process.chdir(name);
+  const currentDir = process.cwd();
+  const newFolderPath = `${currentDir}/${name}`;
+  process.chdir(newFolderPath);
 }
