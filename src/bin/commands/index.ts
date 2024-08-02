@@ -29,10 +29,23 @@ export const createCommand: Command = {
       description: "The email of the author",
       required: true,
       type: ParamType.Email
-    }
+    },
+    {
+      name: "git_init",
+      description: "Do you want to initialize a git repository?",
+      required: true,
+      type: ParamType.List,
+      options: ['yes', 'no']
+    },
   ],
   action: async (args: any) => {
     const {name, description, author, email} = args;
+
+    const isEmpty = commons.isFolderEmpty();
+    if (!isEmpty) {
+      commons.createNewFolder(name);
+      commons.moveToFolder(name);
+    }
 
     await commons.initializeProject();
     await commons.createTsConfigFiles();
@@ -42,7 +55,7 @@ export const createCommand: Command = {
     await commons.generateGreetExample();
     await commons.generateLibIndex();
     await commons.generateBinTs(name, description);
-    await commons.generateIndexTs(name, description); // Transform to export library lib
+    await commons.generateIndexTs(name, description);
     await commons.generateCommandExample();
 
     const newScripts = {
