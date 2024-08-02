@@ -43,7 +43,7 @@ export const createCommand: Command = {
 
     const isEmpty = commons.isFolderEmpty();
     if (!isEmpty) {
-      const data = name.split('@')[1]
+      const data = name.split('/')[1]
       commons.createNewFolder(data);
       commons.moveToFolder(data);
     }
