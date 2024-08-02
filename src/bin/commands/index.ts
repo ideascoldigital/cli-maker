@@ -55,7 +55,7 @@ export const createCommand: Command = {
     await commons.generateGreetExample();
     await commons.generateLibIndex();
     await commons.generateBinTs(name, description);
-    await commons.generateIndexTs(name, description); // Transform to export library lib
+    await commons.generateIndexTs(name, description);
     await commons.generateCommandExample();
 
     const newScripts = {
