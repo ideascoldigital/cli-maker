@@ -158,7 +158,7 @@ export function isFolderEmpty() : boolean {
 }
 
 export function createNewFolder(name: string) {
-  mkdirSync(name);
+  mkdirSync(name, { recursive: true });
 }
 
 export function moveToFolder(name: string) {
