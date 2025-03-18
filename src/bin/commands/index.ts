@@ -71,7 +71,13 @@ export const createCommand: Command = {
     await commons.generateIndexTs(name, description);
     await commons.generateCommandExample();
 
-    const newScripts = {
+    const newScripts = package_manager === 'bun' ? {
+      "build": "bun build ./src/index.ts ./src/bin/cli.ts --target=node --outdir ./dist --format cjs",
+      "build:test": "bun build ./src/tests/*.ts --target=node --outdir dist/tests --format cjs",
+      "test": "bun test",
+      "prepublishOnly": "bun run build",
+      "start": "bun run src/cli.ts"
+    } : {
       "build": "tsc",
       "build:test": "tsc -p tsconfig.test.json",
       "test": "npm run build:test && find dist/tests -name '*.test.js' -exec node {} \\;",
