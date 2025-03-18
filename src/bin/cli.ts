@@ -8,10 +8,20 @@ const cli = new CLI(
   "A simple CLI builder",
   {
     interactive: true,
-    version: '1.0.0',
+    version: '1.0.1',
   }
 );
 
+const versionCommand = {
+  name: 'version',
+  description: 'Show CLI version',
+  params: [],
+  action: () => {
+    console.log(`\n${cli.getName()} version: ${cli.getOptions()?.version}\n`);
+  }
+};
+
 cli.command(createCommand);
+cli.command(versionCommand);
 
 cli.parse(process.argv);

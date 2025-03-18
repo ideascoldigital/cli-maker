@@ -7,9 +7,9 @@ export interface ValidatorResult {
 }
 
 export class Validator {
-  public validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[]): ValidatorResult {
+  public validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[], paramName?: string): ValidatorResult {
     if (this.checkEmpty(value) && isRequired) {
-      return { error: `${Colors.FgRed}Missing required parameter${Colors.Reset}` };
+      return { error: `${Colors.FgRed}Missing required parameter${paramName ? `: ${paramName}` : ''}${Colors.Reset}` };
     } else if (this.checkEmpty(value) && !isRequired) {
       return { value: undefined, error: "" };
     }

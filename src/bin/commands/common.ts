@@ -4,16 +4,24 @@ import { promises as fs, readdirSync, mkdirSync } from 'node:fs';
 import * as templates from '../templates'
 import * as test_templates from '../test_templates'
 
-export async function initializeProject() {
+export async function initializeProject(packageManager: string = 'npm') {
   console.log('Generating base project...');
-  execSync('npm init -y', { stdio: 'inherit' });
+  const initCommand = packageManager === 'bun' ? 'bun init' : 'npm init -y';
+  execSync(initCommand, { stdio: 'inherit' });
 }
 
 export async function createProjectStructure() {
   console.log('Creating project structure...');
-  execSync('mkdir -p src/commands src/utils src/tests', { stdio: 'inherit' });
-  execSync('touch src/index.ts', { stdio: 'inherit' });
-  execSync('mkdir dist', { stdio: 'inherit' });
+  try {
+    execSync('mkdir -p src/commands src/utils src/tests', { stdio: 'inherit' });
+    execSync('touch src/index.ts', { stdio: 'inherit' });
+    execSync('mkdir -p dist', { stdio: 'inherit' });
+    console.log('✅ Project structure created successfully!');
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error('❌ Error creating project structure:', error.message);
+    }
+  }
 }
 
 export async function createGitIgnore() {
@@ -120,8 +128,9 @@ export async function createReadmeFile(cliName: string, cliDescription: string) 
   }
 }
 
-export async function createCliTestFile(cliName: string, cliDescription: string) {
-  const result = test_templates.testCli.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
+export async function createCliTestFile(cliName: string, cliDescription: string, packageManager: string = 'npm') {
+  const template = packageManager === 'bun' ? test_templates.testCliBun : test_templates.testCliNpm;
+  const result = template.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
 
   try {
     await createFileWithDirectories('src/tests/cli/cli.test.ts', result);
@@ -131,9 +140,10 @@ export async function createCliTestFile(cliName: string, cliDescription: string)
   }
 }
 
-export async function createTestLibFile() {
+export async function createTestLibFile(packageManager: string = 'npm') {
   try {
-    await createFileWithDirectories('src/tests/lib/lib.test.ts', test_templates.testLib);
+    const template = packageManager === 'bun' ? test_templates.testLibBun : test_templates.testLibNpm;
+    await createFileWithDirectories('src/tests/lib/lib.test.ts', template);
     console.log('lib.test.ts has been generated!');
   } catch (err) {
     console.error('Failed to generate lib.test.ts:', err);

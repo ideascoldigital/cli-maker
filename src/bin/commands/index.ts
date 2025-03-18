@@ -31,6 +31,13 @@ export const createCommand: Command = {
       type: ParamType.Email
     },
     {
+      name: "package_manager",
+      description: "Select your preferred package manager",
+      required: true,
+      type: ParamType.List,
+      options: ['npm', 'bun']
+    },
+    {
       name: "git_init",
       description: "Do you want to initialize a git repository?",
       required: true,
@@ -39,13 +46,18 @@ export const createCommand: Command = {
     },
   ],
   action: async (args: any) => {
-    const {name, description, author, email} = args;
+    const {name, description, author, email, package_manager} = args;
+    const projectName = name.split('/')[1] || name;
+
+    const isValid = await libraries.validateProjectDirectory(projectName);
+    if (!isValid) {
+      return;
+    }
 
     const isEmpty = commons.isFolderEmpty();
     if (!isEmpty) {
-      const data = name.split('/')[1]
-      commons.createNewFolder(data);
-      commons.moveToFolder(data);
+      commons.createNewFolder(projectName);
+      commons.moveToFolder(projectName);
     }
 
     await commons.initializeProject();
@@ -59,7 +71,13 @@ export const createCommand: Command = {
     await commons.generateIndexTs(name, description);
     await commons.generateCommandExample();
 
-    const newScripts = {
+    const newScripts = package_manager === 'bun' ? {
+      "build": "bun build ./src/index.ts ./src/bin/cli.ts --target=node --outdir ./dist --format cjs",
+      "build:test": "bun build ./src/tests/*.ts --target=node --outdir dist/tests --format cjs",
+      "test": "bun test",
+      "prepublishOnly": "bun run build",
+      "start": "bun run src/cli.ts"
+    } : {
       "build": "tsc",
       "build:test": "tsc -p tsconfig.test.json",
       "test": "npm run build:test && find dist/tests -name '*.test.js' -exec node {} \\;",
@@ -70,9 +88,9 @@ export const createCommand: Command = {
     await libraries.addScriptsToPackageJson(newScripts, name, description, author, email);
     await commons.createBinFile();
     await commons.createReadmeFile(name, description);
-    await commons.createCliTestFile(name, description);
-    await commons.createTestLibFile();
-    await libraries.installDependencies();
+    await commons.createCliTestFile(name, description, package_manager);
+    await commons.createTestLibFile(package_manager);
+    await libraries.installDependencies(package_manager, name);
 
     if (args.git_init === 'yes') {
       await commons.initializeGit();

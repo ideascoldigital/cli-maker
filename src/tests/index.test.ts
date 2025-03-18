@@ -2,7 +2,7 @@ import test from 'node:test';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { CLI, stripAnsiCodes } from '../index';
+import { CLI, ParamType, stripAnsiCodes } from '../index';
 
 describe("CLI", () => {
   test("Validate CLI default params", () => {
@@ -13,6 +13,25 @@ describe("CLI", () => {
     assert.equal(cli.getCommands().length, 0);
     assert.equal(cli.getOptions()?.interactive, true);
     assert.equal(cli.getOptions()?.version, "1.0.0");
+  });
+
+  test("should display version when --version flag is used", () => {
+    const cli = new CLI("Demo CLI", "A simple CLI to demonstrate the CLI library");
+
+    // Redirect stdout to capture output
+    const originalWrite = process.stdout.write;
+    let output = '';
+    process.stdout.write = ((chunk) => {
+      output += chunk;
+      return true;
+    }) as typeof process.stdout.write;
+
+    cli.parse(["", "", "--version"]);
+
+    // Restore stdout
+    process.stdout.write = originalWrite;
+
+    assert.match(output, /Demo CLI version: 1\.0\.0/);
   });
 
   test("required params", () => {
@@ -34,6 +53,30 @@ describe("CLI", () => {
     assert.equal(firstCommand.params.length, 2);
     assert.equal(firstCommand.params[0].required, true);
     assert.equal(firstCommand.params[1].required, false);
+  });
+
+  test("should handle package manager selection", () => {
+    const cli = new CLI("Demo CLI", "A simple CLI to demonstrate the CLI library");
+    const command = {
+      name: "create",
+      description: "test command",
+      params: [
+        {
+          name: "package_manager",
+          description: "package manager",
+          required: true,
+          type: ParamType.List,
+          options: ['npm', 'bun'],
+        },
+      ],
+      action: () => {}
+    };
+    cli.command(command);
+
+    const firstCommand = cli.getCommands()[0];
+    assert.equal(firstCommand.params[0].name, "package_manager");
+    assert.equal(firstCommand.params[0].required, true);
+    assert.deepEqual(firstCommand.params[0].options, ['npm', 'bun']);
   });
 
   describe("Parse command", () => {
