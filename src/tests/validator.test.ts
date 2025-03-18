@@ -15,9 +15,10 @@ describe('Validator', () => {
         description: "Boolean empty required should return Missing required parameter",
         data: "",
         type: ParamType.Boolean,
-        expectedError: "Missing required parameter",
+        expectedError: "Missing required parameter: test",
         expectedValue: undefined,
         required: true,
+        paramName: "test",
       },
       {
         description: "Boolean empty not required, should return undefined without error",
@@ -70,9 +71,10 @@ describe('Validator', () => {
         description: "Number empty required should return Missing required parameter",
         data: "",
         type: ParamType.Number,
-        expectedError: "Missing required parameter",
+        expectedError: "Missing required parameter: test",
         expectedValue: undefined,
         required: true,
+        paramName: "test",
       },
       {
         description: "number empty not required, should return undefined without error",
@@ -125,9 +127,10 @@ describe('Validator', () => {
         description: "email empty required should return Missing required parameter",
         data: "",
         type: ParamType.Email,
-        expectedError: "Missing required parameter",
+        expectedError: "Missing required parameter: test",
         expectedValue: undefined,
         required: true,
+        paramName: "test",
       },
       {
         description: "email empty not required, should return undefined without error",
@@ -172,9 +175,10 @@ describe('Validator', () => {
         description: "url empty required should return Missing required parameter",
         data: "",
         type: ParamType.Url,
-        expectedError: "Missing required parameter",
+        expectedError: "Missing required parameter: test",
         expectedValue: undefined,
         required: true,
+        paramName: "test",
       },
       {
         description: "url empty not required, should return undefined without error",
@@ -321,7 +325,7 @@ function runCases(cases: any, validator: Validator) {
 
 function executeTest(caseTest: any, validator: Validator) {
   test(caseTest.description, () => {
-    const result = validator.validateParam(caseTest.data, caseTest.type, caseTest.required, caseTest.options);
+    const result = validator.validateParam(caseTest.data, caseTest.type, caseTest.required, caseTest.options, caseTest.paramName);
     const actualError = stripAnsiCodes(result.error || "");
 
     assert.equal(actualError, caseTest.expectedError, "Error message");

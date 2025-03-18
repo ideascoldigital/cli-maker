@@ -171,7 +171,7 @@ export class CLI {
         const paramName = key.slice(2);
         const commandParam = command.params.find(p => p.name === paramName);
         if (commandParam) {
-          const validation = this.validateParam(value, commandParam.type, commandParam.required, commandParam.options);
+          const validation = this.validateParam(value, commandParam.type, commandParam.required, commandParam.options, paramName);
           if (validation.error) {
             return { error: validation.error };
           }
@@ -184,8 +184,8 @@ export class CLI {
     return { result };
   }
 
-  private validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[]): ValidatorResult {
-    return this.validator.validateParam(value, type, isRequired, options)
+  private validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[], paramName?: string): ValidatorResult {
+    return this.validator.validateParam(value, type, isRequired, options, paramName)
   }
 
   private findParamType(paramName: string): { name: string; description: string; type?: ParamType; required?: boolean; options?: any[] } | undefined {
