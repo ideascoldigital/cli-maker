@@ -88,8 +88,8 @@ export const createCommand: Command = {
     await libraries.addScriptsToPackageJson(newScripts, name, description, author, email);
     await commons.createBinFile();
     await commons.createReadmeFile(name, description);
-    await commons.createCliTestFile(name, description);
-    await commons.createTestLibFile();
+    await commons.createCliTestFile(name, description, package_manager);
+    await commons.createTestLibFile(package_manager);
     await libraries.installDependencies(package_manager, name);
 
     if (args.git_init === 'yes') {

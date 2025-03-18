@@ -128,8 +128,9 @@ export async function createReadmeFile(cliName: string, cliDescription: string) 
   }
 }
 
-export async function createCliTestFile(cliName: string, cliDescription: string) {
-  const result = test_templates.testCli.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
+export async function createCliTestFile(cliName: string, cliDescription: string, packageManager: string = 'npm') {
+  const template = packageManager === 'bun' ? test_templates.testCliBun : test_templates.testCliNpm;
+  const result = template.replace(/{{cliName}}/g, cliName).replace(/{{cliDescription}}/g, cliDescription);
 
   try {
     await createFileWithDirectories('src/tests/cli/cli.test.ts', result);
@@ -139,9 +140,10 @@ export async function createCliTestFile(cliName: string, cliDescription: string)
   }
 }
 
-export async function createTestLibFile() {
+export async function createTestLibFile(packageManager: string = 'npm') {
   try {
-    await createFileWithDirectories('src/tests/lib/lib.test.ts', test_templates.testLib);
+    const template = packageManager === 'bun' ? test_templates.testLibBun : test_templates.testLibNpm;
+    await createFileWithDirectories('src/tests/lib/lib.test.ts', template);
     console.log('lib.test.ts has been generated!');
   } catch (err) {
     console.error('Failed to generate lib.test.ts:', err);
