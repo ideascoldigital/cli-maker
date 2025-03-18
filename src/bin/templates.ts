@@ -24,19 +24,30 @@ export const templateReadme = `# {{cliName}}
 
 ## Quick start
 \`\`\`bash
+# Using npm
 npx {{cliName}}
+
+# Using bun
+bunx {{cliName}}
 \`\`\`
 
 ## Installation
 
 \`\`\`bash
+# Using npm
 npm install -g {{cliName}}
+
+# Using bun
+bun install -g {{cliName}}
 \`\`\`
 
 ## Usage as cli
 \`\`\`bash
+# Using npm
+npm link # to test the cli locally
 
-# npm link, to test the cli locally
+# Using bun
+bun link # to test the cli locally
 
 {{binName}} greet --name=John
 \`\`\`

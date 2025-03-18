@@ -42,8 +42,12 @@ export class CLI {
     const [nodePath, scriptPath, ...args] = argv;
     const commandName = args[0];
 
-    if (!commandName) {
-      this.help();
+    if (!commandName || commandName === '--version') {
+      if (commandName === '--version') {
+        console.log(`\n${Colors.FgGreen}${this.name} version: ${this.options?.version}${Colors.Reset}\n`);
+      } else {
+        this.help();
+      }
       return;
     }
 

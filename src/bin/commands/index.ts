@@ -31,6 +31,13 @@ export const createCommand: Command = {
       type: ParamType.Email
     },
     {
+      name: "package_manager",
+      description: "Select your preferred package manager",
+      required: true,
+      type: ParamType.List,
+      options: ['npm', 'bun']
+    },
+    {
       name: "git_init",
       description: "Do you want to initialize a git repository?",
       required: true,
@@ -39,13 +46,18 @@ export const createCommand: Command = {
     },
   ],
   action: async (args: any) => {
-    const {name, description, author, email} = args;
+    const {name, description, author, email, package_manager} = args;
+    const projectName = name.split('/')[1] || name;
+
+    const isValid = await libraries.validateProjectDirectory(projectName);
+    if (!isValid) {
+      return;
+    }
 
     const isEmpty = commons.isFolderEmpty();
     if (!isEmpty) {
-      const data = name.split('/')[1]
-      commons.createNewFolder(data);
-      commons.moveToFolder(data);
+      commons.createNewFolder(projectName);
+      commons.moveToFolder(projectName);
     }
 
     await commons.initializeProject();
@@ -72,7 +84,7 @@ export const createCommand: Command = {
     await commons.createReadmeFile(name, description);
     await commons.createCliTestFile(name, description);
     await commons.createTestLibFile();
-    await libraries.installDependencies();
+    await libraries.installDependencies(package_manager, name);
 
     if (args.git_init === 'yes') {
       await commons.initializeGit();

@@ -53,12 +53,28 @@ export async function addScriptsToPackageJson(
   }
 }
 
-export async function installDependencies() {
+export async function validateProjectDirectory(name: string): Promise<boolean> {
+  try {
+    await fs.access(name);
+    console.log(`\n❌ Error: The folder "${name}" already exists.`);
+    console.log('Please choose a different name or delete the existing folder.\n');
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+export async function installDependencies(package_manager = 'npm', projectName: string) {
+  const installCmd = package_manager === 'bun' ? 'bun add' : 'npm install';
+  const devFlag = package_manager === 'bun' ? '--dev' : '--save-dev';
+
   console.log('Installing TypeScript and @types/node...');
-  execSync('npm install --save-dev typescript @types/node', { stdio: 'inherit' });
+  execSync(`${installCmd} ${devFlag} typescript @types/node`, { stdio: 'inherit' });
 
   console.log('Installing @ideascol/cli-maker...');
-  execSync('npm install @ideascol/cli-maker', { stdio: 'inherit' });
-  execSync('npm install', { stdio: 'inherit' });
-  execSync('npm run start', { stdio: 'inherit' });
+  execSync(`${installCmd} @ideascol/cli-maker`, { stdio: 'inherit' });
+  execSync(`${package_manager} run start`, { stdio: 'inherit' });
+
+  console.log('\n🎉 Success! Your CLI project has been created.');
+  console.log(`\nNext steps:\n  cd ${projectName}\n  ${package_manager} start\n\nEnjoy building your CLI! 🚀\n`);
 }
