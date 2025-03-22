@@ -86,9 +86,10 @@ export async function createFileWithDirectories(path: string, data: any) {
   await fs.writeFile(path, data);
 }
 
-export async function generateGithubAction() {
+export async function generateGithubAction(package_manager: string = 'npm') {
   try {
-    await createFileWithDirectories('.github/workflows/publish.yml', templates.githubactionTemplate)
+    const template = package_manager === 'bun' ? templates.githubactionBunTemplate : templates.githubactionNpmTemplate;
+    await createFileWithDirectories('.github/workflows/publish.yml', template)
     console.log('github action has been generated!');
   } catch (err) {
     console.error('Failed to generate github action:', err);

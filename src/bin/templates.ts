@@ -99,7 +99,7 @@ let commandGreet: Command = {
 export default commandGreet;
 `;
 
-export const githubactionTemplate = `on:
+export const githubactionNpmTemplate = `on:
   push:
     branches: main
   pull_request:
@@ -133,6 +133,39 @@ jobs:
 
 `;
 
+export const githubactionBunTemplate = `on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+jobs:
+  test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun test
+  publish:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run build
+      - uses: JS-DevTools/npm-publish@v3
+        with:
+          token: \${{ secrets.NPM_TOKEN }}
+`;
+
 export const tsconfigTemplate = `{
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
@@ -157,7 +190,8 @@ export const tsconfigBaseTemplate = `{
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "declarationDir": "./dist"
   },
   "exclude": ["node_modules"]
 }

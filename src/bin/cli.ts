@@ -8,7 +8,7 @@ const cli = new CLI(
   "A simple CLI builder",
   {
     interactive: true,
-    version: '1.0.1',
+    version: '1.0.2',
   }
 );
 

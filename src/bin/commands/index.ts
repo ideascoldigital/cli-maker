@@ -64,7 +64,7 @@ export const createCommand: Command = {
     await commons.createTsConfigFiles();
     await commons.createProjectStructure();
     await commons.createGitIgnore();
-    await commons.generateGithubAction();
+    await commons.generateGithubAction(package_manager);
     await commons.generateGreetExample();
     await commons.generateLibIndex();
     await commons.generateBinTs(name, description);
@@ -72,7 +72,7 @@ export const createCommand: Command = {
     await commons.generateCommandExample();
 
     const newScripts = package_manager === 'bun' ? {
-      "build": "bun build ./src/index.ts ./src/bin/cli.ts --target=node --outdir ./dist --format cjs",
+      "build": "tsc --emitDeclarationOnly && bun build ./src/index.ts ./src/bin/cli.ts --target=node --outdir ./dist --format cjs",
       "build:test": "bun build ./src/tests/*.ts --target=node --outdir dist/tests --format cjs",
       "test": "bun test",
       "prepublishOnly": "bun run build",
