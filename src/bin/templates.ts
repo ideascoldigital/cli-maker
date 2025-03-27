@@ -130,6 +130,7 @@ jobs:
       - uses: JS-DevTools/npm-publish@v3
         with:
           token: \${{ secrets.NPM_TOKEN }}
+          access: public
 
 `;
 
@@ -164,6 +165,8 @@ jobs:
       - uses: JS-DevTools/npm-publish@v3
         with:
           token: \${{ secrets.NPM_TOKEN }}
+          access: public
+
 `;
 
 export const tsconfigTemplate = `{
