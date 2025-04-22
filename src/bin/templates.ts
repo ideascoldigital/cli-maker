@@ -1,5 +1,4 @@
-export const templateIndex = `export { Greet } from './lib';
-export { cli } from './cli';
+export const templateIndex = `export * from './lib';
 `;
 
 export const template = `import { CLI } from '@ideascol/cli-maker';

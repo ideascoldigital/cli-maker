@@ -76,5 +76,5 @@ export async function installDependencies(package_manager = 'npm', projectName: 
   execSync(`${package_manager} run start`, { stdio: 'inherit' });
 
   console.log('\n🎉 Success! Your CLI project has been created.');
-  console.log(`\nNext steps:\n  cd ${projectName}\n  ${package_manager} start\n\nEnjoy building your CLI! 🚀\n`);
+  console.log(`\nNext steps:\n  cd ${projectName.split('/')[1] || projectName}\n  ${package_manager} start\n\nEnjoy building your CLI! 🚀\n`);
 }
