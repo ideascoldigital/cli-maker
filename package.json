@@ -1,6 +1,6 @@
 {
   "name": "@ideascol/cli-maker",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "A simple library to help create CLIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,8 @@
     "build:test": "tsc -p tsconfig.test.json",
     "test": "npm run build:test && find dist/tests -name '*.test.js' -exec node {} \\;",
     "prepublishOnly": "npm run build",
-    "example": "tsc && tsc examples/example1.ts --outDir dist/examples && node dist/examples/example1.js"
+    "example": "npm run build && node examples/index.js",
+    "dev": "npm run build && node dist/bin/cli.js"
   },
   "bin": {
     "cli-maker": "./dist/bin/cli.js"

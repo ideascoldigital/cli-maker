@@ -10,10 +10,19 @@ export enum ParamType {
   Package = "Package",
 }
 
+export interface CommandParam {
+  name: string;
+  description: string;
+  type?: ParamType;
+  required?: boolean;
+  options?: any[];
+}
+
 export interface Command {
   name: string;
   description: string;
-  params: { name: string; description: string; type?: ParamType; required?: boolean; options?: any[] }[];
+  params: CommandParam[];
+  subcommands?: Command[];
   action: (args: { [key: string]: any }) => void;
 }
 

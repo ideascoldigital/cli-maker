@@ -1,6 +1,6 @@
 import readline from 'readline';
 import { Colors } from '../colors';
-import { ParamType, Command, CLIOptions } from '../interfaces';
+import { ParamType, Command, CLIOptions, CommandParam } from '../interfaces';
 import { Validator, ValidatorResult } from './validator';
 
 export class CLI {
@@ -40,10 +40,9 @@ export class CLI {
 
   public parse(argv: string[]) {
     const [nodePath, scriptPath, ...args] = argv;
-    const commandName = args[0];
-
-    if (!commandName || commandName === '--version') {
-      if (commandName === '--version') {
+    
+    if (args.length === 0 || args[0] === '--version') {
+      if (args[0] === '--version') {
         console.log(`\n${Colors.FgGreen}${this.name} version: ${this.options?.version}${Colors.Reset}\n`);
       } else {
         this.help();
@@ -51,61 +50,115 @@ export class CLI {
       return;
     }
 
-    const command = this.findCommand(commandName);
-    if (!command) {
-      this.showUnknownCommandError(commandName);
+    // Check if we're dealing with a command that has subcommands
+    const commandPath = [];
+    let currentArgs = [...args];
+    let i = 0;
+    
+    // Build the command path (e.g., "create", "create project", etc.)
+    while (i < args.length) {
+      const potentialCommand = args[i];
+      if (potentialCommand.startsWith('--')) break;
+      
+      commandPath.push(potentialCommand);
+      currentArgs = args.slice(i + 1);
+      i++;
+      
+      // Check if we've found a valid command path
+      if (commandPath.length === 1) {
+        const rootCommand = this.findCommand(commandPath[0]);
+        if (!rootCommand) {
+          this.showUnknownCommandError(commandPath[0]);
+          return;
+        }
+        
+        // If no subcommands or we've reached the end of args, stop here
+        if (!rootCommand.subcommands || i >= args.length || args[i].startsWith('--')) break;
+      } else {
+        // We're looking for a subcommand
+        const result = this.findSubcommand(commandPath);
+        if (!result) {
+          // If not found, back up one level and treat the rest as arguments
+          commandPath.pop();
+          currentArgs = args.slice(i);
+          break;
+        }
+        
+        // If no further subcommands or we've reached the end of args, stop here
+        const { command } = result;
+        if (!command.subcommands || i >= args.length || args[i].startsWith('--')) break;
+      }
+    }
+    
+    // Handle help flag for any command level
+    if (currentArgs.includes('--help')) {
+      if (commandPath.length === 1) {
+        const command = this.findCommand(commandPath[0]);
+        if (command) this.commandHelp(command);
+      } else if (commandPath.length > 1) {
+        const result = this.findSubcommand(commandPath);
+        if (result) this.commandHelp(result.command);
+      }
       return;
     }
-
-    if (args.includes('--help')) {
-      this.commandHelp(command);
+    
+    // Execute the command or subcommand
+    let commandToExecute: Command | undefined;
+    
+    if (commandPath.length === 1) {
+      commandToExecute = this.findCommand(commandPath[0]);
+    } else if (commandPath.length > 1) {
+      const result = this.findSubcommand(commandPath);
+      if (result) commandToExecute = result.command;
+    }
+    
+    if (!commandToExecute) {
+      this.showUnknownCommandError(commandPath.join(' '));
       return;
     }
-
-    const params = this.parseArgs(args.slice(1), command);
+    
+    const params = this.parseArgs(currentArgs, commandToExecute);
     if (params.error) {
       console.log(`\n${params.error}`);
-      process.exit(1)
+      process.exit(1);
     }
-
-    if(Object.keys(params.result!).length > 0) {
-      if(this.options!.interactive) {
-        this.options!.interactive = false;
-      }
+    
+    if (Object.keys(params.result!).length > 0 && this.options!.interactive) {
+      this.options!.interactive = false;
     }
-
-    const missingParams = this.getMissingParams(command, params.result!);
-
+    
+    const missingParams = this.getMissingParams(commandToExecute, params.result!);
+    
     if (missingParams.length > 0 && this.options?.interactive) {
-      this.handleMissingParams(command.params, params.result!, command);
+      this.handleMissingParams(commandToExecute.params, params.result!, commandToExecute);
     } else {
-      if(missingParams.length > 0) {
-        console.log(`\n${Colors.FgRed}error missing params${Colors.Reset}\n`)
-
+      if (missingParams.length > 0) {
+        console.log(`\n${Colors.FgRed}Error: missing params${Colors.Reset}\n`);
+        
         missingParams.map((param) => {
-          console.log(`> ${Colors.FgRed}${param.name}${Colors.Reset}`)
-          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`)
-          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`)
-          if(param.options) {
-            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`)
+          console.log(`> ${Colors.FgRed}${param.name}${Colors.Reset}`);
+          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`);
+          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`);
+          if (param.options) {
+            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`);
           }
-        })
-
-        console.log(`\n${Colors.FgYellow}Optional missing params${Colors.Reset}\n`)
-
-        this.getOptionalParams(command, params.result!).map((param) => {
-          console.log(`> ${Colors.FgYellow}${param.name}${Colors.Reset}`)
-          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`)
-          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`)
-          if(param.options) {
-            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`)
+        });
+        
+        console.log(`\n${Colors.FgYellow}Optional missing params${Colors.Reset}\n`);
+        
+        this.getOptionalParams(commandToExecute, params.result!).map((param) => {
+          console.log(`> ${Colors.FgYellow}${param.name}${Colors.Reset}`);
+          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`);
+          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`);
+          if (param.options) {
+            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`);
           }
-        })
-
-        process.exit(1)
+        });
+        
+        process.exit(1);
       }
-
-      command.action(params.result!);
+      
+      commandToExecute.action(params.result!);
     }
   }
 
@@ -118,6 +171,11 @@ export class CLI {
     console.log(`${Colors.Bright}Available commands:${Colors.Reset}`);
     this.commands.forEach(cmd => {
       console.log(`${Colors.FgGreen}  ${cmd.name}${Colors.Reset}: ${cmd.description}`);
+      if (cmd.subcommands && cmd.subcommands.length > 0) {
+        cmd.subcommands.forEach(subcmd => {
+          console.log(`${Colors.FgGreen}    ${cmd.name} ${subcmd.name}${Colors.Reset}: ${subcmd.description}`);
+        });
+      }
     });
     console.log("");
   }
@@ -125,16 +183,51 @@ export class CLI {
   private commandHelp(command: Command) {
     console.log(`${Colors.Bright}Help for command: ${Colors.FgGreen}${command.name}${Colors.Reset}`);
     console.log(`${Colors.FgGreen}Description:${Colors.Reset} ${command.description}`);
+    
     if (command.params.length > 0) {
       console.log(`${Colors.FgGreen}Parameters:${Colors.Reset}`);
       command.params.forEach(param => {
         console.log(`${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description} ${param.required ? '(required)' : ''}`);
       });
     }
+    
+    if (command.subcommands && command.subcommands.length > 0) {
+      console.log(`${Colors.FgGreen}Subcommands:${Colors.Reset}`);
+      command.subcommands.forEach(subcmd => {
+        console.log(`${Colors.FgGreen}  ${subcmd.name}${Colors.Reset}: ${subcmd.description}`);
+      });
+    }
   }
 
-  private findCommand(commandName: string) {
-    return this.commands.find(cmd => cmd.name === commandName);
+  private findCommand(commandName: string, commands: Command[] = this.commands): Command | undefined {
+    return commands.find(cmd => cmd.name === commandName);
+  }
+
+  private findSubcommand(commandPath: string[]): { parentCommand: Command, command: Command } | undefined {
+    if (commandPath.length < 2) return undefined;
+    
+    const rootCommandName = commandPath[0];
+    const rootCommand = this.findCommand(rootCommandName);
+    
+    if (!rootCommand || !rootCommand.subcommands) return undefined;
+    
+    let currentCommand = rootCommand;
+    let currentCommands = rootCommand.subcommands;
+    let i = 1;
+    
+    while (i < commandPath.length - 1) {
+      const subCmd = this.findCommand(commandPath[i], currentCommands);
+      if (!subCmd || !subCmd.subcommands) return undefined;
+      
+      currentCommand = subCmd;
+      currentCommands = subCmd.subcommands;
+      i++;
+    }
+    
+    const finalSubcommand = this.findCommand(commandPath[commandPath.length - 1], currentCommands);
+    if (!finalSubcommand) return undefined;
+    
+    return { parentCommand: currentCommand, command: finalSubcommand };
   }
 
   private showUnknownCommandError(commandName: string) {

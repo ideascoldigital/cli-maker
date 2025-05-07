@@ -5,6 +5,15 @@ const cli = new CLI("mycli", "A simple CLI", {
   version: '1.0.0',
 });
 
+const subcommandExample = {
+  name: 'subcommand-example',
+  description: 'Subcommand example',
+  params: [],
+  action: () => {
+    console.log('Subcommand example');
+  }
+}
+
 let commandExample = {
   name: 'all-params',
   description: 'Show all params',
@@ -51,6 +60,7 @@ let commandExample = {
       required: false,
     }
   ],
+  subcommands: [subcommandExample],
   action: (args) => {
     console.log('EXAMPLE DATA');
     console.log(args);
