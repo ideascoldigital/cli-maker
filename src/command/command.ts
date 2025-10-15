@@ -133,7 +133,7 @@ export class CLI {
       this.handleMissingParams(commandToExecute.params, params.result!, commandToExecute);
     } else {
       if (missingParams.length > 0) {
-        console.log(`\n${Colors.FgRed}Error: missing params${Colors.Reset}\n`);
+        console.log(`\n${Colors.FgRed}error missing params${Colors.Reset}\n`);
         
         missingParams.map((param) => {
           console.log(`> ${Colors.FgRed}${param.name}${Colors.Reset}`);
@@ -258,9 +258,26 @@ export class CLI {
 
   private parseArgs(args: string[], command: Command): { error?: string; result?: { [key: string]: any } } {
     const result: { [key: string]: any } = {};
-    for (const arg of args) {
-      const [key, value] = arg.split('=');
-      if (key.startsWith('--')) {
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      if (arg.startsWith('--')) {
+        let key: string;
+        let value: string | undefined;
+        
+        if (arg.includes('=')) {
+          // Format: --param=value
+          [key, value] = arg.split('=');
+        } else {
+          // Format: --param value
+          key = arg;
+          value = args[i + 1];
+          if (value && !value.startsWith('--')) {
+            i++; // Skip the next argument as it's the value
+          } else {
+            value = undefined;
+          }
+        }
+        
         const paramName = key.slice(2);
         const commandParam = command.params.find(p => p.name === paramName);
         if (commandParam) {

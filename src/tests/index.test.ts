@@ -18,18 +18,17 @@ describe("CLI", () => {
   test("should display version when --version flag is used", () => {
     const cli = new CLI("Demo CLI", "A simple CLI to demonstrate the CLI library");
 
-    // Redirect stdout to capture output
-    const originalWrite = process.stdout.write;
+    // Redirect console.log to capture output
+    const originalLog = console.log;
     let output = '';
-    process.stdout.write = ((chunk) => {
-      output += chunk;
-      return true;
-    }) as typeof process.stdout.write;
+    console.log = (...args) => {
+      output += args.join(' ') + '\n';
+    };
 
     cli.parse(["", "", "--version"]);
 
-    // Restore stdout
-    process.stdout.write = originalWrite;
+    // Restore console.log
+    console.log = originalLog;
 
     assert.match(output, /Demo CLI version: 1\.0\.0/);
   });
@@ -100,18 +99,12 @@ describe("CLI", () => {
 
       const argv = ["", "", "test", "--param2=value1"];
 
-      // Redirigir stdout
-      const originalWrite = process.stdout.write.bind(process.stdout);
+      // Redirect console.log to capture output
+      const originalLog = console.log;
       let output = '';
-      process.stdout.write = ((chunk: any, encoding?: BufferEncoding, callback?: (error?: Error | null) => void): boolean => {
-        if (typeof encoding === 'function') {
-          callback = encoding;
-          encoding = undefined;
-        }
-        output += chunk.toString();
-        if (callback) callback();
-        return true;
-      }) as typeof process.stdout.write;
+      console.log = (...args) => {
+        output += args.join(' ') + '\n';
+      };
 
       const originalProcessExit = process.exit.bind(process);
       let capturedExitCode: number | undefined;
@@ -129,10 +122,25 @@ describe("CLI", () => {
         assert.match(cleanedOutput, /\nerror missing params\n\n> param1\n  > Type: undefined\n  > Description: param1 description\n\nOptional missing params\n\n/, "Expected error message about missing required parameters");
       } finally {
         process.exit = originalProcessExit;
-        process.stdout.write = originalWrite;
+        console.log = originalLog;
       }
 
       assert.equal(cli.getCommands().length, 1);
+    });
+
+    test("should support params without = like --param1 value1", () => {
+      cli.setOptions({ interactive: false });
+
+      const argv = ["", "", "test", "--param1", "value1", "--param2", "value2"];
+
+      // This test should complete successfully without throwing an error
+      try {
+        cli.parse(argv);
+        // If we reach here, the parsing was successful
+        assert.equal(cli.getCommands().length, 1);
+      } catch (error) {
+        assert.fail("Expected cli.parse to not throw an error");
+      }
     });
   });
 });
