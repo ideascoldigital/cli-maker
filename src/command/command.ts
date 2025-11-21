@@ -1,4 +1,6 @@
 import readline from 'readline';
+import fs from 'fs';
+import path from 'path';
 import { Colors } from '../colors';
 import { ParamType, Command, CLIOptions, CommandParam } from '../interfaces';
 import { Validator, ValidatorResult } from './validator';
@@ -7,6 +9,7 @@ import { formatParameterTable } from '../common';
 export class CLI {
   private commands: Command[] = [];
   private validator: Validator;
+  public executableName: string;
 
   constructor(private name: string, private description: string, private options?: CLIOptions) {
     if (this.options == null) {
@@ -14,7 +17,34 @@ export class CLI {
     } else if (this.options.branding === undefined) {
       this.options.branding = true;
     }
-    this.validator = new Validator()
+    this.validator = new Validator();
+
+    // Auto-detect name from package.json bin if available
+    const binName = this.getBinName();
+    if (binName) {
+      this.executableName = binName;
+    } else {
+      this.executableName = this.name;
+    }
+  }
+
+  private getBinName(): string | null {
+    try {
+      const scriptDir = path.dirname(process.argv[1]);
+      const packageJsonPath = path.join(scriptDir, 'package.json');
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      const bin = packageJson.bin;
+      if (typeof bin === 'string') {
+        return bin;
+      } else if (typeof bin === 'object' && bin !== null) {
+        // Return the first bin key
+        const keys = Object.keys(bin);
+        return keys.length > 0 ? keys[0] : null;
+      }
+    } catch (error) {
+      // Ignore errors (file not found, invalid JSON, etc.)
+    }
+    return null;
   }
 
   public getCommands() {
@@ -46,7 +76,7 @@ export class CLI {
 
     if (args.length === 0 || args[0] === '--version') {
       if (args[0] === '--version') {
-        console.log(`\n${Colors.FgGreen}${this.name} version: ${this.options?.version}${Colors.Reset}\n`);
+        console.log(`\n${Colors.FgGreen}${this.executableName} version: ${this.options?.version}${Colors.Reset}\n`);
       } else {
         this.help();
       }
@@ -103,10 +133,10 @@ export class CLI {
     if (currentArgs.includes('--help')) {
       if (commandPath.length === 1) {
         const command = this.findCommand(commandPath[0]);
-        if (command) this.commandHelp(command);
+        if (command) this.commandHelp(command, commandPath);
       } else if (commandPath.length > 1) {
         const result = this.findSubcommand(commandPath);
-        if (result) this.commandHelp(result.command);
+        if (result) this.commandHelp(result.command, commandPath);
       }
       return;
     }
@@ -167,7 +197,7 @@ export class CLI {
           });
         }
 
-        console.log(`${Colors.FgGray}Try '${Colors.Bright}${this.name} ${commandToExecute.name} --help${Colors.Reset}${Colors.FgGray}' for more information.${Colors.Reset}\n`);
+        console.log(`${Colors.FgGray}Try '${Colors.Bright}${this.executableName} ${commandToExecute.name} --help${Colors.Reset}${Colors.FgGray}' for more information.${Colors.Reset}\n`);
         process.exit(1);
       }
 
@@ -181,7 +211,7 @@ export class CLI {
     console.log(`${Colors.FgGreen}${this.description}${Colors.Reset}\n`);
 
     console.log(`${Colors.Bright}${Colors.FgCyan}USAGE${Colors.Reset}`);
-    console.log(`  ${Colors.FgGray}$ ${this.name} <command> [options]${Colors.Reset}\n`);
+    console.log(`  ${Colors.FgGray}$ ${this.executableName} <command> [options]${Colors.Reset}\n`);
 
     console.log(`${Colors.Bright}${Colors.FgCyan}COMMANDS${Colors.Reset}`);
     this.commands.forEach(cmd => {
@@ -198,7 +228,7 @@ export class CLI {
     console.log(`  ${Colors.FgYellow}--help${Colors.Reset}${Colors.FgGray.padEnd(12)}Show help for a command${Colors.Reset}`);
     console.log(`  ${Colors.FgYellow}--version${Colors.Reset}${Colors.FgGray.padEnd(10)}Show version information${Colors.Reset}\n`);
 
-    console.log(`${Colors.FgGray}Run '${Colors.Bright}${this.name} <command> --help${Colors.Reset}${Colors.FgGray}' for detailed help on a specific command.${Colors.Reset}\n`);
+    console.log(`${Colors.FgGray}Run '${Colors.Bright}${this.executableName} <command> --help${Colors.Reset}${Colors.FgGray}' for detailed help on a specific command.${Colors.Reset}\n`);
   }
 
   private showBranding() {
@@ -210,13 +240,14 @@ export class CLI {
     }
   }
 
-  private commandHelp(command: Command) {
-    console.log(`\n${Colors.BgGreen}${Colors.FgBlack} ${this.name} ${command.name} ${Colors.Reset}`);
+  private commandHelp(command: Command, fullCommandPath: string[]) {
+    const fullCommand = fullCommandPath.join(' ');
+    console.log(`\n${Colors.BgGreen}${Colors.FgBlack} ${this.name} ${fullCommand} ${Colors.Reset}`);
     console.log(`${Colors.FgGreen}${command.description}${Colors.Reset}\n`);
 
     console.log(`${Colors.Bright}${Colors.FgCyan}USAGE${Colors.Reset}`);
     const paramList = command.params.map(p => `${p.required ? '<' : '['}${p.name}${p.required ? '>' : ']'} `).join('');
-    console.log(`  ${Colors.FgGray}$ ${this.name} ${command.name} ${paramList}${Colors.Reset}\n`);
+    console.log(`  ${Colors.FgGray}$ ${this.executableName} ${fullCommand} ${paramList}${Colors.Reset}\n`);
 
     if (command.params.length > 0) {
       console.log(`${Colors.Bright}${Colors.FgCyan}PARAMETERS${Colors.Reset}\n`);
@@ -233,18 +264,18 @@ export class CLI {
     }
 
     console.log(`${Colors.Bright}${Colors.FgCyan}EXAMPLES${Colors.Reset}`);
-    console.log(`  ${Colors.FgGray}$ ${this.name} ${command.name} --help${Colors.Reset}`);
+    console.log(`  ${Colors.FgGray}$ ${this.executableName} ${fullCommand} --help${Colors.Reset}`);
     if (command.params.some(p => p.required)) {
       const exampleParams = command.params.filter(p => p.required).slice(0, 2).map(p => {
         if (p.type === ParamType.List && p.options) {
-          return `--${p.name}=${p.options[0]}`;
+          return `--${p.name} ${p.options[0]}`;
         } else if (p.type === ParamType.Boolean) {
-          return `--${p.name}=true`;
+          return `--${p.name}`;
         } else {
-          return `--${p.name}=value`;
+          return `--${p.name} value`;
         }
       }).join(' ');
-      console.log(`  ${Colors.FgGray}$ ${this.name} ${command.name} ${exampleParams}${Colors.Reset}`);
+      console.log(`  ${Colors.FgGray}$ ${this.executableName} ${fullCommand} ${exampleParams}${Colors.Reset}`);
     }
     console.log('');
   }
@@ -291,7 +322,7 @@ export class CLI {
         });
       }
     });
-    console.log(`\n${Colors.FgGray}Try '${Colors.Bright}${this.name} --help${Colors.Reset}${Colors.FgGray}' for more information.${Colors.Reset}\n`);
+    console.log(`\n${Colors.FgGray}Try '${Colors.Bright}${this.executableName} --help${Colors.Reset}${Colors.FgGray}' for more information.${Colors.Reset}\n`);
   }
 
   private getMissingParams(command: Command, result: any) {

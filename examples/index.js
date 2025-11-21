@@ -1,6 +1,6 @@
 const { CLI, ParamType } = require('../src/index.ts');
 
-const cli = new CLI("mycli", "A simple CLI", {
+const cli = new CLI("@demo/mycli", "A simple CLI", {
   interactive: false,
   version: '1.0.0',
   // branding: true, // Disable branding for this example

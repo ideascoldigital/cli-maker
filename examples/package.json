@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "An example of how to use the cli-maker library",
   "main": "index.js",
+  "bin": {
+    "mycli": "index.js"
+  },
   "scripts": {
     "start": "node index.js"
   },

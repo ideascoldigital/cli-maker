@@ -235,7 +235,7 @@ describe("CLI", () => {
       // Restore console.log
       console.log = originalLog;
 
-      assert.match(output, /Test CLI create/);
+      assert.match(output, /Test CLI project create/);
       assert.match(output, /USAGE/);
       assert.match(output, /PARAMETERS/);
       assert.match(output, /name/);
