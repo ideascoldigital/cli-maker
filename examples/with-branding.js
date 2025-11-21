@@ -1,4 +1,4 @@
-const { CLI, ParamType } = require('../dist/index.js');
+const { CLI, ParamType } = require('../src/index.ts');
 
 const cli = new CLI("mycli", "A simple CLI with branding enabled", {
   interactive: false,

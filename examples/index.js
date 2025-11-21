@@ -1,4 +1,4 @@
-const { CLI, ParamType } = require('../dist/index.js');
+const { CLI, ParamType } = require('../src/index.ts');
 
 const cli = new CLI("mycli", "A simple CLI", {
   interactive: false,
@@ -63,7 +63,7 @@ let commandExample = {
   ],
   subcommands: [subcommandExample],
   action: (args) => {
-    const { ProgressIndicator } = require('../dist/index.js');
+    const { ProgressIndicator } = require('../src/index.ts');
     const progress = new ProgressIndicator();
 
     console.log('Starting processing...');
