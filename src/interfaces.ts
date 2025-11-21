@@ -29,4 +29,5 @@ export interface Command {
 export interface CLIOptions {
   interactive?: boolean;
   version?: string;
+  branding?: boolean;
 }

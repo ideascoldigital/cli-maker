@@ -1,8 +1,9 @@
-const { CLI, ParamType } = require('@ideascol/cli-maker');
+const { CLI, ParamType } = require('../dist/index.js');
 
 const cli = new CLI("mycli", "A simple CLI", {
   interactive: false,
   version: '1.0.0',
+  // branding: true, // Disable branding for this example
 });
 
 const subcommandExample = {
@@ -62,8 +63,23 @@ let commandExample = {
   ],
   subcommands: [subcommandExample],
   action: (args) => {
-    console.log('EXAMPLE DATA');
-    console.log(args);
+    const { ProgressIndicator } = require('../dist/index.js');
+    const progress = new ProgressIndicator();
+
+    console.log('Starting processing...');
+    progress.start('Processing data');
+
+    setTimeout(() => {
+      progress.update('Validating inputs');
+      setTimeout(() => {
+        progress.update('Saving results');
+        setTimeout(() => {
+          progress.success('All done!');
+          console.log('EXAMPLE DATA:');
+          console.log(args);
+        }, 1000);
+      }, 1000);
+    }, 1000);
   }
 }
 

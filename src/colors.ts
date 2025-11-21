@@ -25,4 +25,13 @@ export const Colors = {
   BgMagenta: "\x1b[45m",
   BgCyan: "\x1b[46m",
   BgWhite: "\x1b[47m",
+
+  // Progress and status colors
+  Success: "\x1b[32m",
+  Error: "\x1b[31m",
+  Warning: "\x1b[33m",
+  Info: "\x1b[36m",
+
+  // Spinner frames
+  SpinnerFrames: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'],
 };

@@ -2,6 +2,7 @@ import readline from 'readline';
 import { Colors } from '../colors';
 import { ParamType, Command, CLIOptions, CommandParam } from '../interfaces';
 import { Validator, ValidatorResult } from './validator';
+import { formatParameterTable } from '../common';
 
 export class CLI {
   private commands: Command[] = [];
@@ -9,7 +10,9 @@ export class CLI {
 
   constructor(private name: string, private description: string, private options?: CLIOptions) {
     if (this.options == null) {
-      this.options = { interactive: true, version: '1.0.0' };
+      this.options = { interactive: true, version: '1.0.0', branding: true };
+    } else if (this.options.branding === undefined) {
+      this.options.branding = true;
     }
     this.validator = new Validator()
   }
@@ -40,7 +43,7 @@ export class CLI {
 
   public parse(argv: string[]) {
     const [nodePath, scriptPath, ...args] = argv;
-    
+
     if (args.length === 0 || args[0] === '--version') {
       if (args[0] === '--version') {
         console.log(`\n${Colors.FgGreen}${this.name} version: ${this.options?.version}${Colors.Reset}\n`);
@@ -50,20 +53,26 @@ export class CLI {
       return;
     }
 
+    // Handle global help (when --help is the only argument)
+    if (args.length === 1 && args[0] === '--help') {
+      this.help();
+      return;
+    }
+
     // Check if we're dealing with a command that has subcommands
     const commandPath = [];
     let currentArgs = [...args];
     let i = 0;
-    
+
     // Build the command path (e.g., "create", "create project", etc.)
     while (i < args.length) {
       const potentialCommand = args[i];
       if (potentialCommand.startsWith('--')) break;
-      
+
       commandPath.push(potentialCommand);
       currentArgs = args.slice(i + 1);
       i++;
-      
+
       // Check if we've found a valid command path
       if (commandPath.length === 1) {
         const rootCommand = this.findCommand(commandPath[0]);
@@ -71,7 +80,7 @@ export class CLI {
           this.showUnknownCommandError(commandPath[0]);
           return;
         }
-        
+
         // If no subcommands or we've reached the end of args, stop here
         if (!rootCommand.subcommands || i >= args.length || args[i].startsWith('--')) break;
       } else {
@@ -83,13 +92,13 @@ export class CLI {
           currentArgs = args.slice(i);
           break;
         }
-        
+
         // If no further subcommands or we've reached the end of args, stop here
         const { command } = result;
         if (!command.subcommands || i >= args.length || args[i].startsWith('--')) break;
       }
     }
-    
+
     // Handle help flag for any command level
     if (currentArgs.includes('--help')) {
       if (commandPath.length === 1) {
@@ -101,102 +110,143 @@ export class CLI {
       }
       return;
     }
-    
+
     // Execute the command or subcommand
     let commandToExecute: Command | undefined;
-    
+
     if (commandPath.length === 1) {
       commandToExecute = this.findCommand(commandPath[0]);
     } else if (commandPath.length > 1) {
       const result = this.findSubcommand(commandPath);
       if (result) commandToExecute = result.command;
     }
-    
+
     if (!commandToExecute) {
       this.showUnknownCommandError(commandPath.join(' '));
       return;
     }
-    
+
     const params = this.parseArgs(currentArgs, commandToExecute);
     if (params.error) {
       console.log(`\n${params.error}`);
       process.exit(1);
     }
-    
+
     if (Object.keys(params.result!).length > 0 && this.options!.interactive) {
       this.options!.interactive = false;
     }
-    
+
     const missingParams = this.getMissingParams(commandToExecute, params.result!);
-    
+
     if (missingParams.length > 0 && this.options?.interactive) {
       this.handleMissingParams(commandToExecute.params, params.result!, commandToExecute);
     } else {
       if (missingParams.length > 0) {
-        console.log(`\n${Colors.FgRed}error missing params${Colors.Reset}\n`);
-        
-        missingParams.map((param) => {
-          console.log(`> ${Colors.FgRed}${param.name}${Colors.Reset}`);
-          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`);
-          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`);
+        console.log(`\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Missing required parameters${Colors.Reset}\n`);
+
+        missingParams.forEach((param) => {
+          console.log(`${Colors.FgRed}❌ ${Colors.Bright}${param.name}${Colors.Reset}${Colors.FgRed} (${param.type})${Colors.Reset}`);
+          console.log(`   ${Colors.FgGray}${param.description}${Colors.Reset}`);
           if (param.options) {
-            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`);
+            console.log(`   ${Colors.FgGray}Options: ${param.options.join(', ')}${Colors.Reset}`);
           }
+          console.log('');
         });
-        
-        console.log(`\n${Colors.FgYellow}Optional missing params${Colors.Reset}\n`);
-        
-        this.getOptionalParams(commandToExecute, params.result!).map((param) => {
-          console.log(`> ${Colors.FgYellow}${param.name}${Colors.Reset}`);
-          console.log(`  > ${Colors.FgGray}Type: ${param.type}${Colors.Reset}`);
-          console.log(`  > ${Colors.FgGray}Description: ${param.description}${Colors.Reset}`);
-          if (param.options) {
-            console.log(`  > ${Colors.FgGray}Options: ${param.options}${Colors.Reset}`);
-          }
-        });
-        
+
+        const optionalParams = this.getOptionalParams(commandToExecute, params.result!);
+        if (optionalParams.length > 0) {
+          console.log(`${Colors.FgYellow}⚠️  Optional parameters you can provide:${Colors.Reset}\n`);
+
+          optionalParams.forEach((param) => {
+            console.log(`${Colors.FgYellow}○ ${param.name}${Colors.Reset}${Colors.FgYellow} (${param.type})${Colors.Reset}`);
+            console.log(`  ${Colors.FgGray}${param.description}${Colors.Reset}`);
+            if (param.options) {
+              console.log(`  ${Colors.FgGray}Options: ${param.options.join(', ')}${Colors.Reset}`);
+            }
+            console.log('');
+          });
+        }
+
+        console.log(`${Colors.FgGray}Try '${Colors.Bright}${this.name} ${commandToExecute.name} --help${Colors.Reset}${Colors.FgGray}' for more information.${Colors.Reset}\n`);
         process.exit(1);
       }
-      
+
       commandToExecute.action(params.result!);
+      this.showBranding();
     }
   }
 
   public help() {
-    console.log("");
-    console.log(`${Colors.Bright}Welcome to ${Colors.FgGreen}${this.name}${Colors.Reset}`);
-    console.log("");
-    console.log(`${Colors.FgYellow}${this.description}${Colors.Reset}`);
-    console.log("");
-    console.log(`${Colors.Bright}Available commands:${Colors.Reset}`);
+    console.log(`\n${Colors.BgGreen}${Colors.FgBlack} ${this.name} ${Colors.Reset}`);
+    console.log(`${Colors.FgGreen}${this.description}${Colors.Reset}\n`);
+
+    console.log(`${Colors.Bright}${Colors.FgCyan}USAGE${Colors.Reset}`);
+    console.log(`  ${Colors.FgGray}$ ${this.name} <command> [options]${Colors.Reset}\n`);
+
+    console.log(`${Colors.Bright}${Colors.FgCyan}COMMANDS${Colors.Reset}`);
     this.commands.forEach(cmd => {
-      console.log(`${Colors.FgGreen}  ${cmd.name}${Colors.Reset}: ${cmd.description}`);
+      console.log(`  ${Colors.FgGreen}${cmd.name.padEnd(15)}${Colors.Reset}${cmd.description}`);
       if (cmd.subcommands && cmd.subcommands.length > 0) {
         cmd.subcommands.forEach(subcmd => {
-          console.log(`${Colors.FgGreen}    ${cmd.name} ${subcmd.name}${Colors.Reset}: ${subcmd.description}`);
+          console.log(`    ${Colors.FgGreen}${cmd.name} ${subcmd.name}${Colors.Reset}: ${subcmd.description}`);
         });
       }
     });
-    console.log("");
+    console.log('');
+
+    console.log(`${Colors.Bright}${Colors.FgCyan}OPTIONS${Colors.Reset}`);
+    console.log(`  ${Colors.FgYellow}--help${Colors.Reset}${Colors.FgGray.padEnd(12)}Show help for a command${Colors.Reset}`);
+    console.log(`  ${Colors.FgYellow}--version${Colors.Reset}${Colors.FgGray.padEnd(10)}Show version information${Colors.Reset}\n`);
+
+    console.log(`${Colors.FgGray}Run '${Colors.Bright}${this.name} <command> --help${Colors.Reset}${Colors.FgGray}' for detailed help on a specific command.${Colors.Reset}\n`);
+  }
+
+  private showBranding() {
+    if (this.options?.branding) {
+      console.log(`\n${Colors.FgGray}─────────────────────────────────────────────────────────────────${Colors.Reset}`);
+      console.log(`${Colors.FgYellow}⭐ ${Colors.Bright}Like this CLI? Star us on GitHub!${Colors.Reset}`);
+      console.log(`${Colors.FgGray}   https://github.com/ideascoldigital/cli-maker${Colors.Reset}`);
+      console.log(`${Colors.FgGray}─────────────────────────────────────────────────────────────────${Colors.Reset}\n`);
+    }
   }
 
   private commandHelp(command: Command) {
-    console.log(`${Colors.Bright}Help for command: ${Colors.FgGreen}${command.name}${Colors.Reset}`);
-    console.log(`${Colors.FgGreen}Description:${Colors.Reset} ${command.description}`);
-    
+    console.log(`\n${Colors.BgGreen}${Colors.FgBlack} ${this.name} ${command.name} ${Colors.Reset}`);
+    console.log(`${Colors.FgGreen}${command.description}${Colors.Reset}\n`);
+
+    console.log(`${Colors.Bright}${Colors.FgCyan}USAGE${Colors.Reset}`);
+    const paramList = command.params.map(p => `${p.required ? '<' : '['}${p.name}${p.required ? '>' : ']'} `).join('');
+    console.log(`  ${Colors.FgGray}$ ${this.name} ${command.name} ${paramList}${Colors.Reset}\n`);
+
     if (command.params.length > 0) {
-      console.log(`${Colors.FgGreen}Parameters:${Colors.Reset}`);
-      command.params.forEach(param => {
-        console.log(`${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}: ${param.description} ${param.required ? '(required)' : ''}`);
-      });
+      console.log(`${Colors.Bright}${Colors.FgCyan}PARAMETERS${Colors.Reset}\n`);
+      console.log(formatParameterTable(command.params));
+      console.log('');
     }
-    
+
     if (command.subcommands && command.subcommands.length > 0) {
-      console.log(`${Colors.FgGreen}Subcommands:${Colors.Reset}`);
+      console.log(`${Colors.Bright}${Colors.FgCyan}SUBCOMMANDS${Colors.Reset}`);
       command.subcommands.forEach(subcmd => {
-        console.log(`${Colors.FgGreen}  ${subcmd.name}${Colors.Reset}: ${subcmd.description}`);
+        console.log(`  ${Colors.FgGreen}${subcmd.name}${Colors.Reset}: ${subcmd.description}`);
       });
+      console.log('');
     }
+
+    console.log(`${Colors.Bright}${Colors.FgCyan}EXAMPLES${Colors.Reset}`);
+    console.log(`  ${Colors.FgGray}$ ${this.name} ${command.name} --help${Colors.Reset}`);
+    if (command.params.some(p => p.required)) {
+      const exampleParams = command.params.filter(p => p.required).slice(0, 2).map(p => {
+        if (p.type === ParamType.List && p.options) {
+          return `--${p.name}=${p.options[0]}`;
+        } else if (p.type === ParamType.Boolean) {
+          return `--${p.name}=true`;
+        } else {
+          return `--${p.name}=value`;
+        }
+      }).join(' ');
+      console.log(`  ${Colors.FgGray}$ ${this.name} ${command.name} ${exampleParams}${Colors.Reset}`);
+    }
+    console.log('');
   }
 
   private findCommand(commandName: string, commands: Command[] = this.commands): Command | undefined {
@@ -205,34 +255,43 @@ export class CLI {
 
   private findSubcommand(commandPath: string[]): { parentCommand: Command, command: Command } | undefined {
     if (commandPath.length < 2) return undefined;
-    
+
     const rootCommandName = commandPath[0];
     const rootCommand = this.findCommand(rootCommandName);
-    
+
     if (!rootCommand || !rootCommand.subcommands) return undefined;
-    
+
     let currentCommand = rootCommand;
     let currentCommands = rootCommand.subcommands;
     let i = 1;
-    
+
     while (i < commandPath.length - 1) {
       const subCmd = this.findCommand(commandPath[i], currentCommands);
       if (!subCmd || !subCmd.subcommands) return undefined;
-      
+
       currentCommand = subCmd;
       currentCommands = subCmd.subcommands;
       i++;
     }
-    
+
     const finalSubcommand = this.findCommand(commandPath[commandPath.length - 1], currentCommands);
     if (!finalSubcommand) return undefined;
-    
+
     return { parentCommand: currentCommand, command: finalSubcommand };
   }
 
   private showUnknownCommandError(commandName: string) {
-    console.log(`${Colors.FgRed}Unknown command: ${commandName}${Colors.Reset}`);
-    this.help();
+    console.log(`\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Unknown command: '${Colors.Bright}${commandName}${Colors.Reset}${Colors.FgRed}'${Colors.Reset}\n`);
+    console.log(`${Colors.FgYellow}Available commands:${Colors.Reset}\n`);
+    this.commands.forEach(cmd => {
+      console.log(`  ${Colors.FgGreen}${cmd.name}${Colors.Reset}: ${cmd.description}`);
+      if (cmd.subcommands && cmd.subcommands.length > 0) {
+        cmd.subcommands.forEach(subcmd => {
+          console.log(`    ${Colors.FgGreen}${cmd.name} ${subcmd.name}${Colors.Reset}: ${subcmd.description}`);
+        });
+      }
+    });
+    console.log(`\n${Colors.FgGray}Try '${Colors.Bright}${this.name} --help${Colors.Reset}${Colors.FgGray}' for more information.${Colors.Reset}\n`);
   }
 
   private getMissingParams(command: Command, result: any) {
@@ -263,7 +322,7 @@ export class CLI {
       if (arg.startsWith('--')) {
         let key: string;
         let value: string | undefined;
-        
+
         if (arg.includes('=')) {
           // Format: --param=value
           [key, value] = arg.split('=');
@@ -277,7 +336,7 @@ export class CLI {
             value = undefined;
           }
         }
-        
+
         const paramName = key.slice(2);
         const commandParam = command.params.find(p => p.name === paramName);
         if (commandParam) {
@@ -287,7 +346,9 @@ export class CLI {
           }
           result[paramName] = validation.value;
         } else {
-          return { error: `\nParam ${Colors.FgRed}${paramName}${Colors.Reset} ${Colors.Bright}is not allowed${Colors.Reset}` }
+          return {
+            error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Unknown parameter: '${Colors.Bright}${paramName}${Colors.Reset}${Colors.FgRed}'${Colors.Reset}\n${Colors.FgGray}       Available parameters: ${command.params.map(p => p.name).join(', ')}${Colors.Reset}\n`
+          }
         }
       }
     }
@@ -312,25 +373,49 @@ export class CLI {
       return new Promise(resolve => rl.question(question, resolve));
     };
 
+    console.log(`\n${Colors.BgBlue}${Colors.FgWhite} INTERACTIVE MODE ${Colors.Reset} ${Colors.FgBlue}Please provide the following information:${Colors.Reset}\n`);
+
     const prompts = missingParams.reduce((promise, param) => {
       return promise.then(async answers => {
         let answer: string;
         let validation: { error?: string; value?: any };
+
+        // Show parameter header
+        const requiredIndicator = param.required ? `${Colors.FgRed}*${Colors.Reset}` : `${Colors.FgGray}○${Colors.Reset}`;
+        console.log(`${requiredIndicator} ${Colors.Bright}${param.name}${Colors.Reset} ${Colors.FgGray}(${param.type})${Colors.Reset}`);
+        console.log(`  ${Colors.FgGray}${param.description}${Colors.Reset}`);
+
+        if (param.options && param.options.length > 0) {
+          console.log(`  ${Colors.FgGray}Options: ${param.options.join(', ')}${Colors.Reset}`);
+        }
+        console.log('');
+
         if (param.type === ParamType.List && param.options) {
-          const isRequired = param.required ? '(required) ' : '';
-          console.log(`\n${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset} `);
-          console.log(`${Colors.FgYellow}> ${Colors.Reset}${Colors.FgGray}${isRequired}${param.description}:${Colors.Reset}\n`);
+          console.log(`${Colors.FgCyan}Use ↑/↓ arrow keys to navigate, Enter to select:${Colors.Reset}`);
           answer = await this.promptWithArrows(param);
           validation = { value: param.options[parseInt(answer, 10)] };
+          console.log(`${Colors.Success}✓ Selected: ${validation.value}${Colors.Reset}\n`);
         } else {
+          let attemptCount = 0;
           do {
-            const isRequired = param.required ? '(required) ' : '(Enter to skip) ';
-            const message = `\n${Colors.FgYellow}(${param.type}) ${Colors.Reset}${Colors.FgGreen}${param.name}${Colors.Reset}\n${Colors.FgYellow}> ${Colors.Reset}${Colors.FgGray}${isRequired}${param.description}:${Colors.Reset}\n`;
+            if (attemptCount > 0) {
+              console.log(`${Colors.FgYellow}Please try again:${Colors.Reset}`);
+            }
 
-            answer = await askQuestion(message);
+            const promptText = param.required
+              ? `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(required)${Colors.Reset}: `
+              : `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(or press Enter to skip)${Colors.Reset}: `;
+
+            answer = await askQuestion(promptText);
             validation = this.validateParam(answer, param.type, param.required, param.options);
+
             if (validation.error) {
               console.log(validation.error);
+              attemptCount++;
+            } else if (validation.value !== undefined) {
+              console.log(`${Colors.Success}✓ Accepted${Colors.Reset}\n`);
+            } else {
+              console.log(`${Colors.FgGray}○ Skipped${Colors.Reset}\n`);
             }
           } while (validation.error);
         }
@@ -338,7 +423,10 @@ export class CLI {
       });
     }, Promise.resolve(existingParams));
 
-    return prompts.finally(() => rl.close());
+    return prompts.finally(() => {
+      rl.close();
+      console.log(`${Colors.Success}✅ All parameters collected successfully!${Colors.Reset}\n`);
+    });
   }
 
   private async promptWithArrows(param: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }): Promise<string> {
@@ -347,22 +435,24 @@ export class CLI {
         const options = param.options!;
 
         const renderOptions = () => {
+          console.clear();
+          console.log(`${Colors.BgBlue}${Colors.FgWhite} SELECT OPTION ${Colors.Reset} ${Colors.FgBlue}for ${param.name}${Colors.Reset}\n`);
+
           options.forEach((option, i) => {
-            process.stdout.write('\x1B[2K\x1B[0G');
-            if (i === index) {
-              process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
-            } else {
-              process.stdout.write(`  ${option}\n`);
-            }
+            const prefix = i === index ? `${Colors.FgGreen}❯ ${option}${Colors.Reset}` : `  ${option}`;
+            const indicator = i === index ? ` ${Colors.FgCyan}← Current selection${Colors.Reset}` : '';
+            console.log(`${prefix}${indicator}`);
           });
-          process.stdout.write(`\x1B[${options.length}A`);
+
+          console.log(`\n${Colors.FgGray}Use ↑/↓ to navigate, Enter to confirm, Ctrl+C to cancel${Colors.Reset}`);
+          console.log(`${Colors.FgGray}Selected: ${options[index]}${Colors.Reset}`);
         };
 
-        const clearLines = (numLines: number) => {
-          for (let i = 0; i < numLines; i++) {
-              process.stdout.write('\x1B[2K\x1B[1A');
-          }
-          process.stdout.write('\x1B[2K\x1B[0G');
+        const clearScreen = () => {
+          // Clear from cursor to end of screen
+          process.stdout.write('\x1B[0J');
+          // Move cursor to top
+          process.stdout.write('\x1B[0;0H');
         };
 
         const keypressHandler = (str: string, key: readline.Key) => {
@@ -374,17 +464,14 @@ export class CLI {
             renderOptions();
           } else if (key.name === 'return') {
             process.stdin.removeListener('keypress', keypressHandler);
-            clearLines(options.length);
-            options.forEach((option, i) => {
-              if (i === index) {
-                process.stdout.write(`${Colors.FgGreen}> ${option}${Colors.Reset}\n`);
-              } else {
-                process.stdout.write(`  ${option}\n`);
-              }
-            });
-            process.stdout.write(`\nSelected: ${options[index]}\n`);
+            clearScreen();
             resolve(index.toString());
             return;
+          } else if (key.ctrl && key.name === 'c') {
+            process.stdin.removeListener('keypress', keypressHandler);
+            clearScreen();
+            console.log(`${Colors.Warning}⚠️  Selection cancelled${Colors.Reset}\n`);
+            process.exit(0);
           }
         };
 
@@ -393,7 +480,6 @@ export class CLI {
             process.stdin.setRawMode(true);
         }
 
-        process.stdin.on('keypress', keypressHandler);
         renderOptions();
     });
 }

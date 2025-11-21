@@ -33,6 +33,7 @@ const { CLI, ParamType } = require('@ideascol/cli-maker');
 const cli = new CLI("mycli", "A simple CLI", {
   interactive: true,
   version: '0.0.1',
+  branding: true, // Show GitHub star message (default: true)
 });
 
 let commandExample = {
