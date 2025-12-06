@@ -87,6 +87,13 @@ export class Validator {
           };
         }
         return { value };
+      case ParamType.Password:
+        if (this.checkEmpty(value) && isRequired) {
+          return {
+            error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Password cannot be empty${Colors.Reset}\n`
+          };
+        }
+        return { value };
       default:
         return { value };
     }

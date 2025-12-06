@@ -128,3 +128,47 @@ Available presets for `introAnimation.preset`:
 - `steampunk` (engranes ⚙)
 - `sonar` (ondas ◉◎)
 - `rainbow` (bordes y frames multicolor)
+
+## Setup command (step by step interactive)
+
+You can generate a setup command for global variables:
+
+```ts
+import { CLI, ParamType, createSetupCommand } from '@ideascol/cli-maker';
+
+const cli = new CLI('mycli', 'Demo CLI');
+
+const setup = createSetupCommand('mycli', {
+  name: 'setup',
+  description: 'Configure global preferences',
+  steps: [
+    { name: 'api_key', description: 'API key', required: true, type: ParamType.Text },
+    { name: 'environment', description: 'Select environment', type: ParamType.List, options: ['dev', 'staging', 'prod'], required: true },
+    { name: 'telemetry', description: 'Allow metrics', type: ParamType.Boolean, defaultValue: true },
+    { name: 'secret', description: 'Secret key', type: ParamType.Password, required: true },
+  ],
+  encryption: {
+    enabled: true,
+    prompt: 'Passphrase para cifrar/descifrar',
+  },
+});
+
+cli.command(setup);
+cli.parse(process.argv);
+```
+
+The stored config is saved in `~/.cli-maker/<cli>-config.json` (puedes cambiarlo con `configFileName`). Uses the previous value as default if exists, and validates according to `ParamType`.
+Password fields are asked with hidden input and are stored in base64 (with `__b64` marker) to avoid leaving them in plain text. If a previous value exists, it is masked.
+
+To read the configuration in code:
+
+```ts
+import { loadSetupConfig } from '@ideascol/cli-maker';
+import { steps } from './path-to-your-steps'; // or reuse the array that you passed to createSetupCommand
+
+const config = loadSetupConfig('mycli', steps, {
+  passphrase: process.env.MYCLI_PASSPHRASE,
+  // configFileName: 'custom.json'
+});
+console.log(config.api_key, config.secret);
+```

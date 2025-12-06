@@ -325,8 +325,16 @@ export class CLI {
         process.exit(1);
       }
 
-      commandToExecute.action(params.result!);
-      this.showBranding();
+      const actionResult = commandToExecute.action(params.result!);
+      if (actionResult instanceof Promise) {
+        actionResult
+          .then(() => this.showBranding())
+          .catch(error => {
+            console.error(`${Colors.Error}❌ Command failed:${Colors.Reset}`, error);
+          });
+      } else {
+        this.showBranding();
+      }
     }
   }
 

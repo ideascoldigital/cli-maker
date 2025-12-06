@@ -8,6 +8,7 @@ export enum ParamType {
   Phone = 'phone',
   Url = 'url',
   Package = "Package",
+  Password = "password",
 }
 
 export interface CommandParam {
@@ -90,4 +91,57 @@ export interface CLIOptions {
   version?: string;
   branding?: boolean;
   introAnimation?: IntroAnimationOptions;
+}
+
+export interface SetupStep extends CommandParam {
+  /**
+   * Optional default value used when user presses Enter.
+   */
+  defaultValue?: any;
+}
+
+export interface SetupCommandOptions {
+  /**
+   * Name of the generated setup command. Defaults to "setup".
+   */
+  name?: string;
+  /**
+   * Description shown in help. Defaults to "Configure CLI defaults".
+   */
+  description?: string;
+  /**
+   * Steps/questions to ask the user.
+   */
+  steps: SetupStep[];
+  /**
+   * Override where the config is stored. Defaults to ~/.cli-maker/<cliName>-config.json
+   */
+  configFileName?: string;
+  /**
+   * Optional callback executed after saving the config.
+   */
+  onComplete?: (config: Record<string, any>) => void;
+  /**
+   * Enable passphrase-based encryption for password fields.
+   */
+  encryption?: SetupEncryptionOptions;
+}
+
+export interface SetupEncryptionOptions {
+  enabled?: boolean;
+  /**
+   * Optional prompt shown when asking for the passphrase.
+   */
+  prompt?: string;
+}
+
+export interface LoadConfigOptions {
+  /**
+   * Custom config file name/path override (same semantics as in setup).
+   */
+  configFileName?: string;
+  /**
+   * Passphrase to decrypt encrypted password fields.
+   */
+  passphrase?: string;
 }
