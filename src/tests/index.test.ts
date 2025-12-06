@@ -242,7 +242,7 @@ describe("CLI", () => {
       assert.match(output, /Project name/);
     });
 
-    test("should handle unknown subcommand by executing parent command", () => {
+    test("should handle unknown subcommand by executing parent command", async () => {
       const cli = new CLI("Test CLI", "A test CLI");
 
       let parentActionCalled = false;
@@ -274,6 +274,9 @@ describe("CLI", () => {
 
       cli.setOptions({ interactive: false, branding: true });
       cli.parse(["", "", "project", "unknown"]);
+
+      // Wait for async branding to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Restore console.log
       console.log = originalLog;
@@ -367,7 +370,7 @@ describe("CLI", () => {
       assert.match(output, /Test command/);
     });
 
-    test("should display branding when enabled", () => {
+    test("should display branding when enabled", async () => {
       const cli = new CLI("Test CLI", "A test CLI", { branding: true });
 
       let actionCalled = false;
@@ -391,6 +394,9 @@ describe("CLI", () => {
 
       cli.setOptions({ interactive: false, branding: true });
       cli.parse(["", "", "test"]);
+
+      // Wait for async branding to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Restore console.log
       console.log = originalLog;

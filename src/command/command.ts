@@ -326,15 +326,11 @@ export class CLI {
       }
 
       const actionResult = commandToExecute.action(params.result!);
-      if (actionResult instanceof Promise) {
-        actionResult
-          .then(() => this.showBranding())
-          .catch(error => {
-            console.error(`${Colors.Error}❌ Command failed:${Colors.Reset}`, error);
-          });
-      } else {
-        this.showBranding();
-      }
+      Promise.resolve(actionResult)
+        .then(() => this.showBranding())
+        .catch(error => {
+          console.error(`${Colors.Error}❌ Command failed:${Colors.Reset}`, error);
+        });
     }
   }
 

@@ -24,7 +24,7 @@ export interface Command {
   description: string;
   params: CommandParam[];
   subcommands?: Command[];
-  action: (args: { [key: string]: any }) => void;
+  action: (args: { [key: string]: any }) => void | Promise<void>;
 }
 
 export interface IntroAnimationOptions {
