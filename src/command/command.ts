@@ -2,22 +2,124 @@ import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import { Colors } from '../colors';
-import { ParamType, Command, CLIOptions, CommandParam } from '../interfaces';
+import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions } from '../interfaces';
 import { Validator, ValidatorResult } from './validator';
-import { formatParameterTable } from '../common';
+import { formatParameterTable, stripAnsiCodes } from '../common';
+
+const INTRO_PRESETS: Record<string, IntroAnimationOptions> = {
+  hacker: {
+    frames: ['▌', ' ', '▌', ' '],
+    padding: 1,
+    speedMs: 120,
+    loops: 2,
+    lines: ['Initializing secure channel...'],
+  },
+  vaporwave: {
+    frames: ['✦', '✺', '✹', '✸'],
+    padding: 2,
+    speedMs: 85,
+    loops: 2,
+    lines: ['Ride the gradient.'],
+  },
+  radar: {
+    frames: ['◜', '◠', '◝', '◡'],
+    padding: 2,
+    speedMs: 75,
+    loops: 3,
+    lines: ['Scanning environment...'],
+  },
+  pixel: {
+    frames: ['░', '▒', '▓', '█'],
+    padding: 1,
+    speedMs: 70,
+    loops: 2,
+    lines: ['Booting 8-bit systems...'],
+  },
+  steampunk: {
+    frames: ['⚙︎', '⚙', '⚙︎', '⚙'],
+    padding: 2,
+    speedMs: 90,
+    loops: 2,
+    lines: ['Warming valves...'],
+    asciiArt: [
+      '    ___ ',
+      ' __/ o \\__',
+      '|  ⚙   ⚙  |',
+      '‾‾‾‾‾‾‾‾‾‾‾'
+    ],
+  },
+  sonar: {
+    frames: ['◉', '◎', '◉', '◎'],
+    padding: 2,
+    speedMs: 95,
+    loops: 3,
+    lines: ['Ping...'],
+  },
+  'retro-space': {
+    frames: ['=≡>', '⇝◎', '⇢✸', '⇝◎'],
+    padding: 2,
+    speedMs: 90,
+    loops: 3,
+    lines: ['Scanning for lifeforms...'],
+    asciiArt: [
+      '    /\\',
+      '   /::\\',
+      '  /::::\\',
+      '  |/::\\|',
+      '  ‾‾‾‾‾‾'
+    ],
+  },
+  rainbow: {
+    frames: [
+      `${Colors.FgRed}◐${Colors.Reset}`,
+      `${Colors.FgYellow}◐${Colors.Reset}`,
+      `${Colors.FgGreen}◐${Colors.Reset}`,
+      `${Colors.FgCyan}◐${Colors.Reset}`,
+      `${Colors.FgBlue}◐${Colors.Reset}`,
+      `${Colors.FgMagenta}◐${Colors.Reset}`,
+    ],
+    padding: 2,
+    speedMs: 70,
+    loops: 2,
+    lines: ['Painting the sky...'],
+    asciiArt: [
+      `${Colors.FgRed}╭────────────────────╮${Colors.Reset}`,
+      `${Colors.FgRed}│${Colors.Reset}${Colors.FgYellow}████${Colors.Reset}${Colors.FgGreen}████${Colors.Reset}${Colors.FgCyan}████${Colors.Reset}${Colors.FgBlue}████${Colors.Reset}${Colors.FgMagenta}████${Colors.Reset}${Colors.FgRed}│${Colors.Reset}`,
+      `${Colors.FgRed}│${Colors.Reset}${Colors.FgMagenta}████${Colors.Reset}${Colors.FgBlue}████${Colors.Reset}${Colors.FgCyan}████${Colors.Reset}${Colors.FgGreen}████${Colors.Reset}${Colors.FgYellow}████${Colors.Reset}${Colors.FgRed}│${Colors.Reset}`,
+      `${Colors.FgRed}╰────────────────────╯${Colors.Reset}`,
+    ],
+  },
+};
 
 export class CLI {
   private commands: Command[] = [];
   private validator: Validator;
   public executableName: string;
+  private resolvedIntro?: IntroAnimationOptions;
 
   constructor(private name: string, private description: string, private options?: CLIOptions) {
     if (this.options == null) {
-      this.options = { interactive: true, version: '1.0.0', branding: true };
-    } else if (this.options.branding === undefined) {
-      this.options.branding = true;
+      this.options = { interactive: true, version: '1.0.0', branding: true, introAnimation: { enabled: false, showOnce: true } };
+    } else {
+      if (this.options.branding === undefined) {
+        this.options.branding = true;
+      }
+      if (this.options.introAnimation == null) {
+        this.options.introAnimation = { enabled: false, showOnce: true };
+      } else {
+        if (this.options.introAnimation.enabled === undefined) {
+          this.options.introAnimation.enabled = true;
+        }
+        if (this.options.introAnimation.showOnce === undefined) {
+          this.options.introAnimation.showOnce = true;
+        }
+        if (this.options.introAnimation.introMode === undefined) {
+          this.options.introAnimation.introMode = undefined;
+        }
+      }
     }
     this.validator = new Validator();
+    this.resolvedIntro = this.resolveIntroOptions(this.options?.introAnimation);
 
     // Auto-detect name from package.json bin if available
     const binName = this.getBinName();
@@ -68,11 +170,33 @@ export class CLI {
   }
 
   public setOptions(options: CLIOptions) {
-    this.options = options;
+    const merged: CLIOptions = { ...this.options, ...options };
+    if (merged.branding === undefined) {
+      merged.branding = true;
+    }
+    if (merged.introAnimation == null) {
+      merged.introAnimation = { enabled: false, showOnce: true };
+    } else {
+      if (merged.introAnimation.enabled === undefined) {
+        merged.introAnimation.enabled = true;
+      }
+      if (merged.introAnimation.showOnce === undefined) {
+        merged.introAnimation.showOnce = true;
+      }
+      if (merged.introAnimation.introMode === undefined) {
+        merged.introAnimation.introMode = undefined;
+      }
+    }
+    this.options = merged;
+    this.resolvedIntro = this.resolveIntroOptions(this.options.introAnimation);
   }
 
   public parse(argv: string[]) {
-    const [nodePath, scriptPath, ...args] = argv;
+    const [nodePath, scriptPath, ...rawArgs] = argv;
+    const { introMode, filteredArgs } = this.extractIntroFlags(rawArgs);
+    const args = filteredArgs;
+
+    this.showIntroIfNeeded(introMode);
 
     if (args.length === 0 || args[0] === '--version') {
       if (args[0] === '--version') {
@@ -392,6 +516,221 @@ export class CLI {
 
   private findParamType(paramName: string): { name: string; description: string; type?: ParamType; required?: boolean; options?: any[] } | undefined {
     return this.commands.flatMap(command => command.params).find(param => param.name === paramName);
+  }
+
+  private showIntroIfNeeded(overrideMode?: 'always' | 'never') {
+    const introOptions = this.resolvedIntro || this.resolveIntroOptions(this.options?.introAnimation);
+    const mode = (overrideMode || introOptions?.introMode) as 'always' | 'never' | undefined;
+    if (!introOptions || introOptions.enabled === false) {
+      if (mode === 'always') {
+        this.renderIntroAnimation(introOptions || {});
+      }
+      return;
+    }
+
+    if (mode === 'never') return;
+
+    const markerPath = this.getIntroMarkerPath(introOptions);
+    if (mode !== 'always' && introOptions.showOnce !== false && this.hasSeenIntro(markerPath)) {
+      return;
+    }
+
+    this.renderIntroAnimation(introOptions);
+
+    if (introOptions.showOnce !== false && mode !== 'always') {
+      this.markIntroSeen(markerPath);
+    }
+  }
+
+  private resolveIntroOptions(intro?: IntroAnimationOptions): IntroAnimationOptions | undefined {
+    if (!intro) return { enabled: false, showOnce: true };
+    const preset = intro.preset ? INTRO_PRESETS[intro.preset] : undefined;
+
+    return {
+      enabled: intro.enabled ?? preset?.enabled ?? false,
+      showOnce: intro.showOnce ?? preset?.showOnce ?? true,
+      introMode: intro.introMode ?? preset?.introMode,
+      animateText: intro.animateText ?? preset?.animateText ?? true,
+      preset: intro.preset,
+      frames: intro.frames ?? preset?.frames,
+      padding: intro.padding ?? preset?.padding,
+      speedMs: intro.speedMs ?? preset?.speedMs,
+      loops: intro.loops ?? preset?.loops,
+      lines: intro.lines ?? preset?.lines,
+      asciiArt: intro.asciiArt ?? preset?.asciiArt,
+      title: intro.title ?? preset?.title,
+      subtitle: intro.subtitle ?? preset?.subtitle,
+      storageKey: intro.storageKey ?? preset?.storageKey,
+    };
+  }
+
+  private renderIntroAnimation(introOptions: IntroAnimationOptions) {
+    const frames = introOptions.frames && introOptions.frames.length > 0 ? introOptions.frames : ['◢', '◣', '◤', '◥'];
+    const loops = Math.max(1, introOptions.loops ?? 2);
+    const speed = Math.max(40, introOptions.speedMs ?? 90);
+    const totalFrames = frames.length * loops;
+    const fallbackFrame = frames[0] || '★';
+    let renderedLines = 0;
+
+    if (!process.stdout.isTTY) {
+      const lines = this.buildIntroLines(fallbackFrame, introOptions, 1);
+      console.log(lines.join('\n'));
+      console.log('');
+      return;
+    }
+
+    for (let i = 0; i < totalFrames; i++) {
+      const frameSymbol = frames[i % frames.length] || fallbackFrame;
+      const revealProgress = introOptions.animateText === false ? 1 : Math.min(1, (i + 1) / totalFrames);
+      const lines = this.buildIntroLines(frameSymbol, introOptions, revealProgress);
+
+      if (renderedLines > 0) {
+        process.stdout.write(`\x1b[${renderedLines}A\r`);
+        process.stdout.write('\x1b[0J');
+      }
+
+      process.stdout.write(lines.join('\n') + '\n');
+      renderedLines = lines.length;
+      this.blockingSleep(speed);
+    }
+
+    console.log('');
+  }
+
+  private buildIntroLines(frameSymbol: string, introOptions: IntroAnimationOptions, revealProgress: number): string[] {
+    const paddingSize = Math.max(0, introOptions.padding ?? 2);
+    const padding = ' '.repeat(paddingSize);
+    const title = introOptions.title || this.name;
+    const subtitle = introOptions.subtitle ?? this.description;
+    const extraLines = introOptions.lines ?? [];
+    const asciiArt = introOptions.asciiArt ?? [];
+
+    const rawTitle = `${frameSymbol} ${title}`;
+    const rawLines = [rawTitle];
+    if (subtitle) rawLines.push(subtitle);
+    rawLines.push(...extraLines);
+    rawLines.push(...asciiArt);
+
+    const maxContentWidth = Math.max(...rawLines.map(line => stripAnsiCodes(line).length));
+    const horizontal = '─'.repeat(maxContentWidth + 2);
+    const topBorder = `${padding}${Colors.FgGray}┌${horizontal}┐${Colors.Reset}`;
+    const bottomBorder = `${padding}${Colors.FgGray}└${horizontal}┘${Colors.Reset}`;
+
+    const formatLine = (text: string, rawText: string) => {
+      const displayLength = stripAnsiCodes(text).length;
+      const spaces = Math.max(0, maxContentWidth - displayLength);
+      const lineContent = ` ${text}${' '.repeat(spaces)} `;
+      return `${padding}${Colors.FgGray}│${Colors.Reset}${lineContent}${Colors.FgGray}│${Colors.Reset}`;
+    };
+
+    const rainbowMode = introOptions.preset === 'rainbow';
+    const visibleTitle = this.revealText(title, revealProgress, introOptions.animateText);
+    const coloredTitle = rainbowMode ? this.colorizeRainbow(visibleTitle) : `${Colors.Bright}${Colors.FgCyan}${visibleTitle}${Colors.Reset}`;
+    const formattedTitle = `${Colors.FgYellow}${frameSymbol}${Colors.Reset} ${coloredTitle}`;
+    const formattedLines: string[] = [formatLine(formattedTitle, rawTitle)];
+
+    if (subtitle) {
+      const visibleSubtitle = this.revealText(subtitle, revealProgress, introOptions.animateText);
+      const coloredSubtitle = rainbowMode ? this.colorizeRainbow(visibleSubtitle) : `${Colors.FgGray}${visibleSubtitle}${Colors.Reset}`;
+      formattedLines.push(formatLine(coloredSubtitle, subtitle));
+    }
+
+    extraLines.forEach(line => {
+      const visibleLine = this.revealText(line, revealProgress, introOptions.animateText);
+      const coloredLine = rainbowMode ? this.colorizeRainbow(visibleLine) : `${Colors.FgGray}${visibleLine}${Colors.Reset}`;
+      formattedLines.push(formatLine(coloredLine, line));
+    });
+
+    asciiArt.forEach(line => {
+      const shouldAnimateArt = introOptions.animateText !== false && !line.includes('\x1b');
+      const visibleArt = this.revealText(line, shouldAnimateArt ? revealProgress : 1, shouldAnimateArt);
+      formattedLines.push(formatLine(visibleArt, line));
+    });
+
+    return [topBorder, ...formattedLines, bottomBorder];
+  }
+
+  private getIntroMarkerPath(introOptions: IntroAnimationOptions): string | null {
+    if (introOptions.showOnce === false) return null;
+
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    if (!homeDir) return null;
+
+    const safeName = (introOptions.storageKey || `${this.executableName || this.name}-intro`)
+      .replace(/[^a-z0-9-_]/gi, '-')
+      .toLowerCase();
+
+    const markerDir = path.join(homeDir, '.cli-maker');
+    return path.join(markerDir, `${safeName}.json`);
+  }
+
+  private hasSeenIntro(markerPath: string | null): boolean {
+    if (!markerPath) return false;
+    try {
+      return fs.existsSync(markerPath);
+    } catch {
+      return false;
+    }
+  }
+
+  private markIntroSeen(markerPath: string | null) {
+    if (!markerPath) return;
+    try {
+      fs.mkdirSync(path.dirname(markerPath), { recursive: true });
+      fs.writeFileSync(markerPath, JSON.stringify({ seenAt: new Date().toISOString() }), 'utf-8');
+    } catch {
+      // If we cannot persist the marker, just continue without blocking the CLI
+    }
+  }
+
+  private blockingSleep(ms: number) {
+    if (ms <= 0) return;
+    const sharedBuffer = new SharedArrayBuffer(4);
+    const sharedArray = new Int32Array(sharedBuffer);
+    Atomics.wait(sharedArray, 0, 0, ms);
+  }
+
+  private revealText(text: string | undefined, progress: number, animate?: boolean): string {
+    if (!text) return '';
+    if (animate === false) return text;
+    const clean = stripAnsiCodes(text);
+    const len = clean.length;
+    if (len === 0) return '';
+    const visible = Math.min(len, Math.max(0, Math.round(len * progress)));
+    return text.slice(0, visible);
+  }
+
+  private colorizeRainbow(text: string): string {
+    const palette = [Colors.FgRed, Colors.FgYellow, Colors.FgGreen, Colors.FgCyan, Colors.FgBlue, Colors.FgMagenta];
+    let colored = '';
+    let colorIndex = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char.trim().length === 0) {
+        colored += char;
+        continue;
+      }
+      colored += `${palette[colorIndex % palette.length]}${char}${Colors.Reset}`;
+      colorIndex++;
+    }
+    return colored;
+  }
+
+  private extractIntroFlags(rawArgs: string[]): { introMode?: 'always' | 'never', filteredArgs: string[] } {
+    let introMode: 'always' | 'never' | undefined;
+    const filteredArgs = rawArgs.filter(arg => {
+      if (arg === '--intro-always') {
+        introMode = 'always';
+        return false;
+      }
+      if (arg === '--no-intro') {
+        introMode = 'never';
+        return false;
+      }
+      return true;
+    });
+
+    return { introMode, filteredArgs };
   }
 
   private async promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {

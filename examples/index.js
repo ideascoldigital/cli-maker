@@ -4,6 +4,18 @@ const cli = new CLI("@demo/mycli", "A simple CLI", {
   interactive: false,
   version: '1.0.0',
   // branding: true, // Disable branding for this example
+  introAnimation: {
+    enabled: true,           // Show intro once per machine (unless overridden)
+    preset: 'rainbow',   // Presets: retro-space, hacker, vaporwave, radar, pixel, steampunk, sonar, rainbow
+    title: 'mycli',          // Defaults to the CLI name
+    subtitle: 'A simple CLI',// Defaults to the CLI description
+    // Override any preset field if you want:
+    // frames: ['✦', '✹', '✸', '✺'],
+    // speedMs: 120,
+    // loops: 2,
+    lines: ['Built with cli-maker'],
+    introMode: 'always',   // 'always' | 'never' | undefined (default: once)
+  },
 });
 
 const subcommandExample = {

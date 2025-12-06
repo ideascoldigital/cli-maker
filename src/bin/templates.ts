@@ -8,6 +8,12 @@ import CommandGreet from './commands/greetCommand';
 const cli = new CLI('{{cliName}}', '{{cliDescription}}', {
   interactive: true,
   version: '1.0.0',
+  introAnimation: {
+    enabled: true,
+    preset: 'retro-space', // Change to other presets or override fields below
+    title: '{{cliName}}',
+    subtitle: '{{cliDescription}}',
+  },
 });
 
 cli.command(CommandGreet);
