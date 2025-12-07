@@ -821,47 +821,6 @@ export class CLI {
       return new Promise(resolve => rl.question(question, resolve));
     };
 
-    const askHiddenQuestion = (question: string): Promise<string> => {
-      return new Promise(resolve => {
-        const stdin = process.stdin;
-        const stdout = process.stdout;
-        stdout.write(question);
-        let buffer = '';
-
-        const onData = (char: Buffer) => {
-          const key = char.toString();
-          if (key === '\n' || key === '\r' || key === '\u0004') {
-            stdout.write('\n');
-            stdin.removeListener('data', onData);
-            if (stdin.isTTY) stdin.setRawMode(false);
-            stdin.pause();
-            resolve(buffer);
-          } else if (key === '\u0003') {
-            // Ctrl+C
-            stdin.removeListener('data', onData);
-            if (stdin.isTTY) stdin.setRawMode(false);
-            stdin.pause();
-            process.exit(0);
-          } else if (key === '\u007f' || key === '\b') {
-            // Backspace/Delete
-            if (buffer.length > 0) {
-              buffer = buffer.slice(0, -1);
-              // Move cursor back, write space to clear, move back again
-              stdout.write('\b \b');
-            }
-          } else if (key >= ' ' && key <= '~') {
-            // Printable characters only
-            buffer += key;
-            stdout.write('*'); // Show asterisk for feedback
-          }
-        };
-
-        stdin.resume();
-        if (stdin.isTTY) stdin.setRawMode(true);
-        stdin.on('data', onData);
-      });
-    };
-
     console.log(`\n${Colors.BgBlue}${Colors.FgWhite} INTERACTIVE MODE ${Colors.Reset} ${Colors.FgBlue}Please provide the following information:${Colors.Reset}\n`);
 
     const prompts = missingParams.reduce((promise, param) => {
@@ -898,7 +857,7 @@ export class CLI {
             // Use hidden input for Password type
             if (param.type === ParamType.Password) {
               rl.close(); // Close readline to avoid interference with raw mode
-              answer = await askHiddenQuestion(promptText);
+              answer = await CLI.askHiddenQuestion(promptText);
               // Recreate readline for next questions
               rl = readline.createInterface({
                 input: process.stdin,
@@ -992,4 +951,69 @@ export class CLI {
         renderOptions();
     });
 }
+
+  /**
+   * Static method to prompt for visible input.
+   * @param question The question to ask the user
+   * @returns Promise that resolves with the user's answer
+   */
+  static async askQuestion(question: string): Promise<string> {
+    return new Promise(resolve => {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      rl.question(question, answer => {
+        rl.close();
+        resolve(answer);
+      });
+    });
+  }
+
+  /**
+   * Static method to prompt for hidden input (password-like).
+   * The input is not displayed on the screen, asterisks are shown instead.
+   * @param question The question to ask the user
+   * @returns Promise that resolves with the user's hidden input
+   */
+  static async askHiddenQuestion(question: string): Promise<string> {
+    return new Promise(resolve => {
+      const stdin = process.stdin;
+      const stdout = process.stdout;
+      stdout.write(question);
+      let buffer = '';
+
+      const onData = (char: Buffer) => {
+        const key = char.toString();
+        if (key === '\n' || key === '\r' || key === '\u0004') {
+          stdout.write('\n');
+          stdin.removeListener('data', onData);
+          if (stdin.isTTY) stdin.setRawMode(false);
+          stdin.pause();
+          resolve(buffer);
+        } else if (key === '\u0003') {
+          // Ctrl+C
+          stdin.removeListener('data', onData);
+          if (stdin.isTTY) stdin.setRawMode(false);
+          stdin.pause();
+          process.exit(0);
+        } else if (key === '\u007f' || key === '\b') {
+          // Backspace/Delete
+          if (buffer.length > 0) {
+            buffer = buffer.slice(0, -1);
+            // Move cursor back, write space to clear, move back again
+            stdout.write('\b \b');
+          }
+        } else if (key >= ' ' && key <= '~') {
+          // Printable characters only
+          buffer += key;
+          stdout.write('*'); // Show asterisk for feedback
+        }
+      };
+
+      stdin.resume();
+      if (stdin.isTTY) stdin.setRawMode(true);
+      stdin.on('data', onData);
+    });
+  }
 }

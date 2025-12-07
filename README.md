@@ -247,6 +247,25 @@ cli.command({
 - **`prompt(question: string)`**: Prompts the user for visible input
 - **`hiddenPrompt(question: string)`**: Prompts the user for hidden input (password-like, input is not displayed)
 
+### CLI Static Methods
+
+The `CLI` class also provides static methods for prompting users, which can be used anywhere without creating a CLI instance:
+
+```ts
+import { CLI } from '@ideascol/cli-maker';
+
+// Prompt for visible input
+const name = await CLI.askQuestion('What is your name? ');
+console.log(`Hello, ${name}!`);
+
+// Prompt for hidden input (password-like)
+const secret = await CLI.askHiddenQuestion('Enter your secret key: ');
+console.log(`Secret received (length: ${secret.length})`);
+```
+
+- **`CLI.askQuestion(question: string)`**: Static method to prompt for visible input
+- **`CLI.askHiddenQuestion(question: string)`**: Static method to prompt for hidden input (shows asterisks)
+
 ### Password Type in Interactive Mode
 
 When using `ParamType.Password` in interactive mode, the input is automatically hidden from the screen, providing a secure way to collect sensitive information:
