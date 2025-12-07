@@ -829,6 +829,13 @@ export class CLI {
           process.stdout.write('\x1B[0;0H');
         };
 
+        const cleanup = () => {
+          process.stdin.removeListener('keypress', keypressHandler);
+          if (process.stdin.isTTY) {
+            process.stdin.setRawMode(false);
+          }
+        };
+
         const keypressHandler = (str: string, key: readline.Key) => {
           if (key.name === 'up') {
             index = (index > 0) ? index - 1 : options.length - 1;
@@ -837,12 +844,12 @@ export class CLI {
             index = (index + 1) % options.length;
             renderOptions();
           } else if (key.name === 'return') {
-            process.stdin.removeListener('keypress', keypressHandler);
+            cleanup();
             clearScreen();
             resolve(index.toString());
             return;
           } else if (key.ctrl && key.name === 'c') {
-            process.stdin.removeListener('keypress', keypressHandler);
+            cleanup();
             clearScreen();
             console.log(`${Colors.Warning}⚠️  Selection cancelled${Colors.Reset}\n`);
             process.exit(0);
@@ -854,6 +861,7 @@ export class CLI {
             process.stdin.setRawMode(true);
         }
 
+        process.stdin.on('keypress', keypressHandler);
         renderOptions();
     });
 }
