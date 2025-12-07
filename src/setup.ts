@@ -31,7 +31,7 @@ export function createSetupCommand(cliName: string, options: SetupCommandOptions
       const existingConfig = loadConfig(configFile, options.steps, passphrase);
       const answers: Record<string, any> = { ...existingConfig };
 
-      console.log(`\n${Colors.BgBlue}${Colors.FgWhite} SETUP ${Colors.Reset} ${Colors.FgBlue}Configura tu CLI paso a paso${Colors.Reset}\n`);
+      console.log(`\n${Colors.BgBlue}${Colors.FgWhite} SETUP ${Colors.Reset} ${Colors.FgBlue}Configure your CLI step by step${Colors.Reset}\n`);
 
       for (const step of options.steps) {
         const value = await askForStep(step, answers[step.name], validator);
@@ -110,7 +110,7 @@ function ensureDir(dir: string) {
 }
 
 async function askForStep(step: SetupStep, existing: any, validator: Validator): Promise<any> {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  let rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q: string) => new Promise<string>(resolve => rl.question(q, resolve));
 
   const label = `${Colors.Bright}${step.name}${Colors.Reset} ${Colors.FgGray}(${step.description})${Colors.Reset}`;
@@ -135,7 +135,18 @@ async function askForStep(step: SetupStep, existing: any, validator: Validator):
       done = true;
     } else {
       const prompt = `${Colors.FgGreen}>${Colors.Reset} `;
-      const input = step.type === ParamType.Password ? await readHiddenInput(prompt) : await ask(prompt);
+      let input: string;
+      
+      if (step.type === ParamType.Password) {
+        // Close readline to avoid interference with raw mode
+        rl.close();
+        input = await readHiddenInput(prompt);
+        // Recreate readline for potential next iterations
+        rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      } else {
+        input = await ask(prompt);
+      }
+      
       const candidateRaw = input === '' ? (existing ?? step.defaultValue ?? '') : input;
       const candidate = typeof candidateRaw === 'boolean' ? String(candidateRaw) : candidateRaw;
       const validation = validator.validateParam(candidate, step.type, step.required, step.options, step.name);
