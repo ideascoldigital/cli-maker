@@ -152,7 +152,7 @@ export const githubactionBunTemplate = `on:
 jobs:
   test:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
@@ -162,7 +162,7 @@ jobs:
       - run: bun test
   publish:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: test
     steps:
       - uses: actions/checkout@v6
