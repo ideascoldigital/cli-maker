@@ -9,7 +9,14 @@ const cli = new CLI(
   {
     interactive: true,
     version: '1.0.2',
-  }
+    introAnimation: {
+      enabled: true,
+      title: 'CLI Maker',
+      subtitle: 'A simple CLI builder',
+      introMode: 'always',
+      preset: 'hacker'
+    }
+  },
 );
 
 const versionCommand = {

@@ -25,6 +25,10 @@ jobs:
         with:
           bun-version: 1.3.0
       - run: bun install
+      - name: Update version in cli.ts
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/version: '[^']*'/version: '$VERSION'/" src/bin/cli.ts
       - run: bun run build
       - uses: JS-DevTools/npm-publish@v3
         with:
