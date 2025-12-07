@@ -18,7 +18,7 @@ const setupSteps = [
 
 
 const cli = new CLI(cliName, "A simple CLI", {
-  interactive: false,
+  interactive: true,
   version: '1.0.0',
   // branding: true, // Disable branding for this example
   introAnimation: {
@@ -110,8 +110,8 @@ let commandExample = {
     const { ProgressIndicator } = require('../src/index.ts');
     const progress = new ProgressIndicator();
 
-    const passphrase = await promptPassphrase();
-    const setupConfig = loadSetupConfig(cliName, setupSteps, { passphrase });
+    // Usando el método del CLI - automáticamente pide passphrase si hay Password fields
+    const setupConfig = await cli.loadConfig();
     console.log('CONFIG loaded (setup):', {
       api_key: setupConfig.api_key ? setupConfig.api_key : 'no-set',
       environment: setupConfig.environment,
@@ -140,11 +140,11 @@ cli.command(commandExample);
 
 cli.command({
   name: 'show-config',
-  description: 'Muestra API key y config desde el setup (requiere passphrase)',
+  description: 'Show API key and config from el setup (asks for passphrase automatically)',
   params: [],
   action: async () => {
-    const passphrase = await promptPassphrase();
-    const cfg = loadSetupConfig(cliName, setupSteps, { passphrase });
+    // Método simplificado del CLI - automáticamente pide passphrase si hay Password fields
+    const cfg = await cli.loadConfig();
     console.log('\nCONFIG');
     console.log(`environment: ${cfg.environment || 'n/a'}`);
     console.log(`telemetry: ${cfg.telemetry === undefined ? 'n/a' : cfg.telemetry}`);
@@ -154,20 +154,41 @@ cli.command({
 
 cli.command({
   name: 'get-env',
-  description: 'Obtiene solo el environment del setup usando getConfigValue (sin necesidad de setupSteps)',
+  description: 'Get only the environment from the setup using getConfigValue del CLI',
   params: [],
   action: async () => {
-    // No necesitas passphrase ni setupSteps para valores no-password
-    const environment = getConfigValue(cliName, 'environment');
+    // Método del CLI - automáticamente detecta si necesita passphrase
+    const environment = await cli.getConfigValue('environment');
     console.log(`\nEnvironment: ${environment || 'not configured'}`);
   }
 });
 
 cli.command({
+  name: 'get-api-key',
+  description: 'obtains API key (Password field) - asks for passphrase automatically',
+  params: [
+    {
+      name: 'passphrase',
+      description: 'Passphrase to decrypt',
+      type: ParamType.Password,
+      required: true
+    }
+  ],
+  action: async (args) => {
+    // Para campos Password, automáticamente pide passphrase
+    const apiKey = await cli.getConfigValue('api_key', args.passphrase);
+    const environment = await cli.getConfigValue('environment');
+    console.log(`\nAPI Key: ${apiKey ? '*** (loaded)' : 'not configured'}`);
+    console.log(`\nEnvironment: ${environment ? environment : 'not configured'}`);
+  }
+});
+
+cli.command({
   name: 'get-all-raw',
-  description: 'Obtiene toda la configuración raw (sin descifrar passwords)',
+  description: 'Get all configuration raw (no decrypt passwords) - standalone function',
   params: [],
   action: async () => {
+    // Función standalone - aún disponible para casos especiales
     const config = getRawConfig(cliName);
     console.log('\nRaw Config:');
     console.log(JSON.stringify(config, null, 2));
@@ -176,10 +197,10 @@ cli.command({
 
 cli.command({
   name: 'custom-prompts',
-  description: 'Ejemplo de uso de prompt y hiddenPrompt en acciones',
+  description: 'Example of using prompt and hiddenPrompt in actions',
   params: [],
   action: async () => {
-    console.log('\nDemo de utilidades prompt y hiddenPrompt:\n');
+    console.log('\nUtilities Demo:\n');
     
     const username = await prompt('Enter your username: ');
     console.log(`Username entered: ${username}`);
@@ -192,8 +213,3 @@ cli.command({
 });
 
 cli.parse(process.argv);
-
-async function promptPassphrase() {
-  if (process.env.MYCLI_PASSPHRASE) return process.env.MYCLI_PASSPHRASE;
-  return hiddenPrompt('Passphrase (not stored): ');
-}

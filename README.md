@@ -173,25 +173,52 @@ Password fields are asked with hidden input and are stored in base64 (with `__b6
 To read the configuration in code:
 
 ```ts
-import { loadSetupConfig, getRawConfig, getConfigValue } from '@ideascol/cli-maker';
-import { steps } from './path-to-your-steps'; // or reuse the array that you passed to createSetupCommand
+import { CLI, ParamType } from '@ideascol/cli-maker';
 
-// Option 1: Load all config values with decryption (requires steps and passphrase for Password fields)
-const config = loadSetupConfig('mycli', steps, {
-  passphrase: process.env.MYCLI_PASSPHRASE,
-  // configFileName: 'custom.json'
+const cli = new CLI('mycli', 'Demo CLI');
+
+// First, define your setup command
+cli.setupCommand({
+  steps: [
+    { name: 'api_key', description: 'API key', type: ParamType.Password, required: true },
+    { name: 'environment', description: 'Environment', type: ParamType.List, options: ['dev', 'prod'] },
+  ],
+  encryption: { enabled: true },
 });
-console.log(config.api_key, config.secret);
 
-// Option 2: Get raw config (simple, no decryption - Password fields remain encrypted)
+// Then use the CLI methods to access config
+cli.command({
+  name: 'deploy',
+  description: 'Deploy to server',
+  params: [],
+  action: async () => {
+    // Method 1: Load all config (automatically prompts for passphrase if Password fields exist)
+    const config = await cli.loadConfig();
+    console.log(config.api_key, config.environment);
+
+    // Method 2: Get a specific value (automatically prompts for passphrase if it's a Password field)
+    const apiKey = await cli.getConfigValue('api_key'); // Will prompt for passphrase
+    const env = await cli.getConfigValue('environment'); // No passphrase needed (not a Password field)
+    
+    // Optional: Provide passphrase programmatically to avoid prompt
+    const apiKeyWithPass = await cli.getConfigValue('api_key', 'my-passphrase');
+  }
+});
+```
+
+**Standalone functions** (still available for advanced use cases):
+
+```ts
+import { loadSetupConfig, getRawConfig, getConfigValue } from '@ideascol/cli-maker';
+
+// Load with decryption (requires steps and passphrase)
+const config = loadSetupConfig('mycli', steps, { passphrase: 'my-pass' });
+
+// Get raw config (no decryption)
 const rawConfig = getRawConfig('mycli');
-console.log(rawConfig.environment, rawConfig.telemetry);
 
-// Option 3: Get a specific config value (simple, no steps needed)
+// Get specific value (no decryption)
 const environment = getConfigValue('mycli', 'environment');
-console.log(environment);
-
-// Note: For Password fields, use loadSetupConfig with steps and passphrase to decrypt them
 ```
 
 ## Utility Functions

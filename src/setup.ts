@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import crypto from 'crypto';
+import os from 'os';
 import { Colors } from './colors';
 import { Command, ParamType, SetupCommandOptions, SetupStep, LoadConfigOptions } from './interfaces';
 import { Validator } from './command/validator';
@@ -88,7 +89,7 @@ export function getConfigValue(cliName: string, key: string, options?: { configF
 
 function buildConfigPath(cliName: string, customName?: string) {
   const safeName = (customName || `${cliName}-config.json`).replace(/[^a-z0-9._-]/gi, '-');
-  const home = process.env.HOME || process.cwd();
+  const home = os.homedir();
   return path.join(home, '.cli-maker', safeName);
 }
 
@@ -246,8 +247,17 @@ async function readHiddenInput(prompt: string): Promise<string> {
         if (stdin.isTTY) stdin.setRawMode(false);
         stdin.pause();
         process.exit(0);
-      } else {
+      } else if (key === '\u007f' || key === '\b') {
+        // Backspace/Delete
+        if (buffer.length > 0) {
+          buffer = buffer.slice(0, -1);
+          // Move cursor back, write space to clear, move back again
+          stdout.write('\b \b');
+        }
+      } else if (key >= ' ' && key <= '~') {
+        // Printable characters only
         buffer += key;
+        stdout.write('*'); // Show asterisk for feedback
       }
     };
 

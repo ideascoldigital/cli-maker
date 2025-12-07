@@ -37,7 +37,7 @@ export async function addScriptsToPackageJson(
     ];
 
     packageJson.engines = {
-      node: ">=20.15.1"
+      node: ">=24.11.1"
     };
 
     packageJson.publishConfig = {

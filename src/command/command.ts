@@ -1,11 +1,12 @@
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { Colors } from '../colors';
-import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions, SetupCommandOptions } from '../interfaces';
+import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions, SetupCommandOptions, SetupStep } from '../interfaces';
 import { Validator, ValidatorResult } from './validator';
 import { formatParameterTable, stripAnsiCodes } from '../common';
-import { createSetupCommand } from '../setup';
+import { createSetupCommand, getRawConfig as getRawConfigUtil, loadSetupConfig as loadSetupConfigUtil, hiddenPrompt } from '../setup';
 
 const INTRO_PRESETS: Record<string, IntroAnimationOptions> = {
   hacker: {
@@ -97,6 +98,8 @@ export class CLI {
   private validator: Validator;
   public executableName: string;
   private resolvedIntro?: IntroAnimationOptions;
+  private setupSteps?: SetupStep[];
+  private setupConfigFileName?: string;
 
   constructor(private name: string, private description: string, private options?: CLIOptions) {
     if (this.options == null) {
@@ -171,9 +174,74 @@ export class CLI {
   }
 
   public setupCommand(options: SetupCommandOptions) {
+    this.setupSteps = options.steps;
+    this.setupConfigFileName = options.configFileName;
     const setupCmd = createSetupCommand(this.name, options);
     this.commands.push(setupCmd);
     return this;
+  }
+
+  /**
+   * Get a specific config value from the setup config.
+   * For non-Password fields, returns the raw value.
+   * For Password fields, prompts for passphrase if not provided.
+   */
+  public async getConfigValue(key: string, passphrase?: string): Promise<any> {
+    if (!this.setupSteps) {
+      // If no setup steps defined, return raw value
+      const config = getRawConfigUtil(this.name, { configFileName: this.setupConfigFileName });
+      return config[key];
+    }
+
+    // Check if the requested key is a Password field
+    const step = this.setupSteps.find(s => s.name === key);
+    const isPasswordField = step?.type === ParamType.Password;
+
+    if (isPasswordField) {
+      // Password field requires passphrase
+      let actualPassphrase = passphrase;
+      if (!actualPassphrase) {
+        actualPassphrase = await hiddenPrompt('Passphrase to decrypt: ');
+      }
+      const config = loadSetupConfigUtil(this.name, this.setupSteps, {
+        passphrase: actualPassphrase,
+        configFileName: this.setupConfigFileName,
+      });
+      return config[key];
+    } else {
+      // Non-password field, return raw value
+      const config = getRawConfigUtil(this.name, { configFileName: this.setupConfigFileName });
+      return config[key];
+    }
+  }
+
+  /**
+   * Load all config values from the setup config.
+   * For Password fields, prompts for passphrase if not provided.
+   */
+  public async loadConfig(passphrase?: string): Promise<Record<string, any>> {
+    if (!this.setupSteps) {
+      // If no setup steps defined, return raw config
+      return getRawConfigUtil(this.name, { configFileName: this.setupConfigFileName });
+    }
+
+    // Check if there are any Password fields
+    const hasPasswordFields = this.setupSteps.some(s => s.type === ParamType.Password);
+
+    if (hasPasswordFields) {
+      // Password fields require passphrase
+      let actualPassphrase = passphrase;
+      if (!actualPassphrase) {
+        actualPassphrase = await hiddenPrompt('Passphrase to decrypt: ');
+      }
+      return loadSetupConfigUtil(this.name, this.setupSteps, {
+        passphrase: actualPassphrase,
+        configFileName: this.setupConfigFileName,
+      });
+    } else {
+      // No password fields, return raw config
+      return getRawConfigUtil(this.name, { configFileName: this.setupConfigFileName });
+    }
   }
 
   public setOptions(options: CLIOptions) {
@@ -664,8 +732,7 @@ export class CLI {
   private getIntroMarkerPath(introOptions: IntroAnimationOptions): string | null {
     if (introOptions.showOnce === false) return null;
 
-    const homeDir = process.env.HOME || process.env.USERPROFILE;
-    if (!homeDir) return null;
+    const homeDir = os.homedir();
 
     const safeName = (introOptions.storageKey || `${this.executableName || this.name}-intro`)
       .replace(/[^a-z0-9-_]/gi, '-')
@@ -745,7 +812,7 @@ export class CLI {
   }
 
   private async promptForMissingParams(missingParams: { name: string; description: string, type?: ParamType; required?: boolean; options?: any[] }[], existingParams: { [key: string]: any }): Promise<{ [key: string]: any }> {
-    const rl = readline.createInterface({
+    let rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
     });
@@ -770,12 +837,22 @@ export class CLI {
             stdin.pause();
             resolve(buffer);
           } else if (key === '\u0003') {
+            // Ctrl+C
             stdin.removeListener('data', onData);
             if (stdin.isTTY) stdin.setRawMode(false);
             stdin.pause();
             process.exit(0);
-          } else {
+          } else if (key === '\u007f' || key === '\b') {
+            // Backspace/Delete
+            if (buffer.length > 0) {
+              buffer = buffer.slice(0, -1);
+              // Move cursor back, write space to clear, move back again
+              stdout.write('\b \b');
+            }
+          } else if (key >= ' ' && key <= '~') {
+            // Printable characters only
             buffer += key;
+            stdout.write('*'); // Show asterisk for feedback
           }
         };
 
@@ -820,7 +897,13 @@ export class CLI {
 
             // Use hidden input for Password type
             if (param.type === ParamType.Password) {
+              rl.close(); // Close readline to avoid interference with raw mode
               answer = await askHiddenQuestion(promptText);
+              // Recreate readline for next questions
+              rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+              });
             } else {
               answer = await askQuestion(promptText);
             }
