@@ -1,5 +1,13 @@
-const readline = require('readline');
-const { CLI, ParamType, createSetupCommand, loadSetupConfig } = require('../src/index.ts');
+const { 
+  CLI,
+  ParamType,
+  createSetupCommand,
+  loadSetupConfig,
+  getRawConfig,
+  getConfigValue,
+  prompt,
+  hiddenPrompt,
+} = require('../src/index.ts');
 
 const cliName = "@demo/mycli";
 const setupSteps = [
@@ -7,6 +15,7 @@ const setupSteps = [
   { name: 'environment', description: 'Select environment', type: ParamType.List, options: ['dev', 'staging', 'prod'], required: true },
   { name: 'telemetry', description: 'Allow metrics', type: ParamType.Boolean, defaultValue: true },
 ];
+
 
 const cli = new CLI(cliName, "A simple CLI", {
   interactive: false,
@@ -26,15 +35,14 @@ const cli = new CLI(cliName, "A simple CLI", {
   },
 });
 
-cli.command(
-  createSetupCommand(cliName, {
-    steps: setupSteps,
-    encryption: {
-      enabled: true,
-      prompt: 'Passphrase for encryption',
-    },
-  })
-)
+// Método simplificado: setupCommand infiere automáticamente el cliName
+cli.setupCommand({
+  steps: setupSteps,
+  encryption: {
+    enabled: true,
+    prompt: 'Passphrase for encryption',
+  },
+});
 
 const subcommandExample = {
   name: 'subcommand-example',
@@ -144,41 +152,48 @@ cli.command({
   }
 });
 
+cli.command({
+  name: 'get-env',
+  description: 'Obtiene solo el environment del setup usando getConfigValue (sin necesidad de setupSteps)',
+  params: [],
+  action: async () => {
+    // No necesitas passphrase ni setupSteps para valores no-password
+    const environment = getConfigValue(cliName, 'environment');
+    console.log(`\nEnvironment: ${environment || 'not configured'}`);
+  }
+});
+
+cli.command({
+  name: 'get-all-raw',
+  description: 'Obtiene toda la configuración raw (sin descifrar passwords)',
+  params: [],
+  action: async () => {
+    const config = getRawConfig(cliName);
+    console.log('\nRaw Config:');
+    console.log(JSON.stringify(config, null, 2));
+  }
+});
+
+cli.command({
+  name: 'custom-prompts',
+  description: 'Ejemplo de uso de prompt y hiddenPrompt en acciones',
+  params: [],
+  action: async () => {
+    console.log('\nDemo de utilidades prompt y hiddenPrompt:\n');
+    
+    const username = await prompt('Enter your username: ');
+    console.log(`Username entered: ${username}`);
+    
+    const password = await hiddenPrompt('Enter your password (hidden): ');
+    console.log(`Password entered (length): ${password.length} characters\n`);
+    
+    console.log('✅ Prompts completed successfully!');
+  }
+});
+
 cli.parse(process.argv);
 
 async function promptPassphrase() {
   if (process.env.MYCLI_PASSPHRASE) return process.env.MYCLI_PASSPHRASE;
-  const prompt = 'Passphrase (not stored): ';
-  return readHiddenInput(prompt);
-}
-
-function readHiddenInput(prompt) {
-  return new Promise(resolve => {
-    const stdin = process.stdin;
-    const stdout = process.stdout;
-    stdout.write(prompt);
-    let buffer = '';
-
-    const onData = (char) => {
-      const key = char.toString();
-      if (key === '\n' || key === '\r' || key === '\u0004') {
-        stdout.write('\n');
-        stdin.removeListener('data', onData);
-        if (stdin.isTTY) stdin.setRawMode(false);
-        stdin.pause();
-        resolve(buffer);
-      } else if (key === '\u0003') {
-        stdin.removeListener('data', onData);
-        if (stdin.isTTY) stdin.setRawMode(false);
-        stdin.pause();
-        process.exit(0);
-      } else {
-        buffer += key;
-      }
-    };
-
-    stdin.resume();
-    if (stdin.isTTY) stdin.setRawMode(true);
-    stdin.on('data', onData);
-  });
+  return hiddenPrompt('Passphrase (not stored): ');
 }

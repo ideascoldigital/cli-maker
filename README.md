@@ -134,13 +134,14 @@ Available presets for `introAnimation.preset`:
 You can generate a setup command for global variables:
 
 ```ts
-import { CLI, ParamType, createSetupCommand } from '@ideascol/cli-maker';
+import { CLI, ParamType } from '@ideascol/cli-maker';
 
 const cli = new CLI('mycli', 'Demo CLI');
 
-const setup = createSetupCommand('mycli', {
-  name: 'setup',
-  description: 'Configure global preferences',
+// Simplified method: setupCommand automatically infers the CLI name
+cli.setupCommand({
+  name: 'setup', // optional, defaults to 'setup'
+  description: 'Configure global preferences', // optional
   steps: [
     { name: 'api_key', description: 'API key', required: true, type: ParamType.Text },
     { name: 'environment', description: 'Select environment', type: ParamType.List, options: ['dev', 'staging', 'prod'], required: true },
@@ -153,8 +154,17 @@ const setup = createSetupCommand('mycli', {
   },
 });
 
-cli.command(setup);
 cli.parse(process.argv);
+```
+
+Alternatively, you can still use the standalone `createSetupCommand` function:
+
+```ts
+import { CLI, ParamType, createSetupCommand } from '@ideascol/cli-maker';
+
+const cli = new CLI('mycli', 'Demo CLI');
+const setup = createSetupCommand('mycli', { /* options */ });
+cli.command(setup);
 ```
 
 The stored config is saved in `~/.cli-maker/<cli>-config.json` (puedes cambiarlo con `configFileName`). Uses the previous value as default if exists, and validates according to `ParamType`.
@@ -163,12 +173,71 @@ Password fields are asked with hidden input and are stored in base64 (with `__b6
 To read the configuration in code:
 
 ```ts
-import { loadSetupConfig } from '@ideascol/cli-maker';
+import { loadSetupConfig, getRawConfig, getConfigValue } from '@ideascol/cli-maker';
 import { steps } from './path-to-your-steps'; // or reuse the array that you passed to createSetupCommand
 
+// Option 1: Load all config values with decryption (requires steps and passphrase for Password fields)
 const config = loadSetupConfig('mycli', steps, {
   passphrase: process.env.MYCLI_PASSPHRASE,
   // configFileName: 'custom.json'
 });
 console.log(config.api_key, config.secret);
+
+// Option 2: Get raw config (simple, no decryption - Password fields remain encrypted)
+const rawConfig = getRawConfig('mycli');
+console.log(rawConfig.environment, rawConfig.telemetry);
+
+// Option 3: Get a specific config value (simple, no steps needed)
+const environment = getConfigValue('mycli', 'environment');
+console.log(environment);
+
+// Note: For Password fields, use loadSetupConfig with steps and passphrase to decrypt them
+```
+
+## Utility Functions
+
+### prompt and hiddenPrompt
+
+You can use `prompt` and `hiddenPrompt` utility functions in your command actions:
+
+```ts
+import { prompt, hiddenPrompt } from '@ideascol/cli-maker';
+
+cli.command({
+  name: 'login',
+  description: 'Login to the service',
+  params: [],
+  action: async () => {
+    const username = await prompt('Enter your username: ');
+    const password = await hiddenPrompt('Enter your password (hidden): ');
+    
+    console.log(`Logging in as ${username}...`);
+    // Your login logic here
+  }
+});
+```
+
+- **`prompt(question: string)`**: Prompts the user for visible input
+- **`hiddenPrompt(question: string)`**: Prompts the user for hidden input (password-like, input is not displayed)
+
+### Password Type in Interactive Mode
+
+When using `ParamType.Password` in interactive mode, the input is automatically hidden from the screen, providing a secure way to collect sensitive information:
+
+```ts
+cli.command({
+  name: 'secure-command',
+  description: 'Command with password parameter',
+  params: [
+    {
+      name: 'secret',
+      description: 'Your secret key',
+      required: true,
+      type: ParamType.Password
+    }
+  ],
+  action: (args) => {
+    console.log('Secret received (length):', args.secret.length);
+  }
+});
 ```

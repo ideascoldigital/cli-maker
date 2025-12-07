@@ -115,10 +115,10 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
       - run: npm ci
       - run: npm test
   publish:
@@ -126,12 +126,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
       - run: npm ci
       - run: npm run build
+      - name: Update version in cli.ts
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/version: '[^']*'/version: '$VERSION'/" src/bin/cli.ts
       - uses: JS-DevTools/npm-publish@v3
         with:
           token: \${{ secrets.NPM_TOKEN }}
@@ -150,10 +154,10 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.3
       - run: bun install
       - run: bun test
   publish:
@@ -161,11 +165,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.3
       - run: bun install
+      - name: Update version in cli.ts
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/version: '[^']*'/version: '$VERSION'/" src/bin/cli.ts
       - run: bun run build
       - uses: JS-DevTools/npm-publish@v3
         with:

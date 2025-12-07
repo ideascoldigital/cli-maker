@@ -2,9 +2,10 @@ import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import { Colors } from '../colors';
-import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions } from '../interfaces';
+import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions, SetupCommandOptions } from '../interfaces';
 import { Validator, ValidatorResult } from './validator';
 import { formatParameterTable, stripAnsiCodes } from '../common';
+import { createSetupCommand } from '../setup';
 
 const INTRO_PRESETS: Record<string, IntroAnimationOptions> = {
   hacker: {
@@ -167,6 +168,12 @@ export class CLI {
 
   public command(command: Command) {
     this.commands.push(command);
+  }
+
+  public setupCommand(options: SetupCommandOptions) {
+    const setupCmd = createSetupCommand(this.name, options);
+    this.commands.push(setupCmd);
+    return this;
   }
 
   public setOptions(options: CLIOptions) {
@@ -747,6 +754,37 @@ export class CLI {
       return new Promise(resolve => rl.question(question, resolve));
     };
 
+    const askHiddenQuestion = (question: string): Promise<string> => {
+      return new Promise(resolve => {
+        const stdin = process.stdin;
+        const stdout = process.stdout;
+        stdout.write(question);
+        let buffer = '';
+
+        const onData = (char: Buffer) => {
+          const key = char.toString();
+          if (key === '\n' || key === '\r' || key === '\u0004') {
+            stdout.write('\n');
+            stdin.removeListener('data', onData);
+            if (stdin.isTTY) stdin.setRawMode(false);
+            stdin.pause();
+            resolve(buffer);
+          } else if (key === '\u0003') {
+            stdin.removeListener('data', onData);
+            if (stdin.isTTY) stdin.setRawMode(false);
+            stdin.pause();
+            process.exit(0);
+          } else {
+            buffer += key;
+          }
+        };
+
+        stdin.resume();
+        if (stdin.isTTY) stdin.setRawMode(true);
+        stdin.on('data', onData);
+      });
+    };
+
     console.log(`\n${Colors.BgBlue}${Colors.FgWhite} INTERACTIVE MODE ${Colors.Reset} ${Colors.FgBlue}Please provide the following information:${Colors.Reset}\n`);
 
     const prompts = missingParams.reduce((promise, param) => {
@@ -780,7 +818,13 @@ export class CLI {
               ? `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(required)${Colors.Reset}: `
               : `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(or press Enter to skip)${Colors.Reset}: `;
 
-            answer = await askQuestion(promptText);
+            // Use hidden input for Password type
+            if (param.type === ParamType.Password) {
+              answer = await askHiddenQuestion(promptText);
+            } else {
+              answer = await askQuestion(promptText);
+            }
+            
             validation = this.validateParam(answer, param.type, param.required, param.options);
 
             if (validation.error) {

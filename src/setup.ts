@@ -60,6 +60,32 @@ export function loadSetupConfig(cliName: string, steps: SetupStep[], options?: L
   return loadConfig(configFile, steps, options?.passphrase);
 }
 
+/**
+ * Helper to get the raw setup config without decryption.
+ * Use this for non-sensitive values. For Password fields, use loadSetupConfig with steps and passphrase.
+ */
+export function getRawConfig(cliName: string, options?: { configFileName?: string }): Record<string, any> {
+  const configFile = buildConfigPath(cliName, options?.configFileName);
+  try {
+    if (fs.existsSync(configFile)) {
+      return JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+    }
+  } catch {
+    // ignore malformed or unreadable files
+  }
+  return {};
+}
+
+/**
+ * Helper to get a specific config value from the setup config.
+ * This is a simplified version that doesn't require steps and reads the raw config.
+ * Note: Password fields will remain encrypted/encoded unless you use loadSetupConfig with steps and passphrase.
+ */
+export function getConfigValue(cliName: string, key: string, options?: { configFileName?: string }): any {
+  const config = getRawConfig(cliName, options);
+  return config[key];
+}
+
 function buildConfigPath(cliName: string, customName?: string) {
   const safeName = (customName || `${cliName}-config.json`).replace(/[^a-z0-9._-]/gi, '-');
   const home = process.env.HOME || process.cwd();
@@ -177,6 +203,27 @@ function decodePasswords(steps: SetupStep[], data: Record<string, any>, passphra
     }
   });
   return result;
+}
+
+/**
+ * Prompts the user for hidden input (password-like).
+ * The input is not displayed on the screen.
+ */
+export async function hiddenPrompt(prompt: string): Promise<string> {
+  return readHiddenInput(prompt);
+}
+
+/**
+ * Prompts the user for visible input.
+ */
+export async function prompt(question: string): Promise<string> {
+  return new Promise(resolve => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(question, answer => {
+      rl.close();
+      resolve(answer);
+    });
+  });
 }
 
 async function readHiddenInput(prompt: string): Promise<string> {
