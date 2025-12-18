@@ -262,13 +262,14 @@ async function readHiddenInput(prompt: string): Promise<string> {
         // Backspace/Delete
         if (buffer.length > 0) {
           buffer = buffer.slice(0, -1);
-          // Move cursor back, write space to clear, move back again
           stdout.write('\b \b');
         }
-      } else if (key >= ' ' && key <= '~') {
-        // Printable characters only
-        buffer += key;
-        stdout.write('*'); // Show asterisk for feedback
+      } else {
+        const printableChars = key.split('').filter(c => c >= ' ' && c <= '~').join('');
+        if (printableChars.length > 0) {
+          buffer += printableChars;
+          stdout.write('*'.repeat(printableChars.length));
+        }
       }
     };
 

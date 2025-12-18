@@ -178,7 +178,7 @@ cli.command({
     // Para campos Password, automáticamente pide passphrase
     const apiKey = await cli.getConfigValue('api_key', args.passphrase);
     const environment = await cli.getConfigValue('environment');
-    console.log(`\nAPI Key: ${apiKey ? '*** (loaded)' : 'not configured'}`);
+    console.log(`\nAPI Key: ${apiKey ? apiKey : 'not configured'}`);
     console.log(`\nEnvironment: ${environment ? environment : 'not configured'}`);
   }
 });

@@ -690,7 +690,10 @@ export class CLI {
     rawLines.push(...extraLines);
     rawLines.push(...asciiArt);
 
-    const maxContentWidth = Math.max(...rawLines.map(line => stripAnsiCodes(line).length));
+    const contentWidth = Math.max(...rawLines.map(line => stripAnsiCodes(line).length));
+    const terminalWidth = process.stdout.columns || 80;
+    const minWidth = Math.floor(terminalWidth / 2) - paddingSize * 2 - 4;
+    const maxContentWidth = Math.max(contentWidth, minWidth);
     const horizontal = '─'.repeat(maxContentWidth + 2);
     const topBorder = `${padding}${Colors.FgGray}┌${horizontal}┐${Colors.Reset}`;
     const bottomBorder = `${padding}${Colors.FgGray}└${horizontal}┘${Colors.Reset}`;
@@ -1001,13 +1004,14 @@ export class CLI {
           // Backspace/Delete
           if (buffer.length > 0) {
             buffer = buffer.slice(0, -1);
-            // Move cursor back, write space to clear, move back again
             stdout.write('\b \b');
           }
-        } else if (key >= ' ' && key <= '~') {
-          // Printable characters only
-          buffer += key;
-          stdout.write('*'); // Show asterisk for feedback
+        } else {
+          const printableChars = key.split('').filter(c => c >= ' ' && c <= '~').join('');
+          if (printableChars.length > 0) {
+            buffer += printableChars;
+            stdout.write('*'.repeat(printableChars.length));
+          }
         }
       };
 
