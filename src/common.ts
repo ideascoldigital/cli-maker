@@ -32,7 +32,6 @@ export class ProgressIndicator {
       const color = success ? Colors.Success : Colors.Error;
       const message = finalMessage || (success ? 'Done!' : 'Failed!');
 
-      // Clear the current line and move cursor to beginning
       process.stdout.write('\r\x1b[K');
       process.stdout.write(`${color}${icon} ${message}${Colors.Reset}\n`);
     }
@@ -44,6 +43,61 @@ export class ProgressIndicator {
 
   error(message: string = 'Operation failed!'): void {
     this.stop(false, message);
+  }
+}
+
+export class ProgressBar {
+  private total: number;
+  private current: number = 0;
+  private barLength: number = 40;
+  private message: string = '';
+
+  constructor(total: number, barLength: number = 40) {
+    this.total = total;
+    this.barLength = barLength;
+  }
+
+  private render(): void {
+    const percentage = Math.floor((this.current / this.total) * 100);
+    const filledLength = Math.floor((this.current / this.total) * this.barLength);
+    const emptyLength = this.barLength - filledLength;
+    
+    const filledBar = '█'.repeat(filledLength);
+    const emptyBar = '░'.repeat(emptyLength);
+    
+    const bar = `${Colors.FgCyan}${filledBar}${Colors.FgGray}${emptyBar}${Colors.Reset}`;
+    const percentageText = `${Colors.Bright}${percentage}%${Colors.Reset}`;
+    const messageText = this.message ? ` ${Colors.FgGray}${this.message}${Colors.Reset}` : '';
+    
+    process.stdout.write(`\r\x1b[K[${bar}] ${percentageText}${messageText}`);
+  }
+
+  start(message: string = ''): void {
+    this.message = message;
+    this.current = 0;
+    this.render();
+  }
+
+  update(current: number, message?: string): void {
+    this.current = Math.min(current, this.total);
+    if (message !== undefined) {
+      this.message = message;
+    }
+    this.render();
+  }
+
+  increment(step: number = 1, message?: string): void {
+    this.update(this.current + step, message);
+  }
+
+  complete(message: string = 'Completed!'): void {
+    this.current = this.total;
+    this.render();
+    process.stdout.write(`\n${Colors.Success}✅ ${message}${Colors.Reset}\n`);
+  }
+
+  error(message: string = 'Failed!'): void {
+    process.stdout.write(`\n${Colors.Error}❌ ${message}${Colors.Reset}\n`);
   }
 }
 

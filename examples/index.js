@@ -212,4 +212,35 @@ cli.command({
   }
 });
 
+cli.command({
+  name: 'progress-demo',
+  description: 'Simple ProgressBar example',
+  params: [],
+  action: async () => {
+    const { ProgressBar } = require('../src/index.ts');
+    const totalSteps = 100;
+    const progress = new ProgressBar(totalSteps);
+    
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    console.log('\nStarting task...\n');
+    progress.start('Loading data');
+    await sleep(1000);
+    
+    progress.update(25, 'Processing files');
+    await sleep(1000);
+    
+    progress.update(50, 'Validating results');
+    await sleep(1000);
+    
+    progress.update(75, 'Saving changes');
+    await sleep(1000);
+    
+    progress.update(100, 'Finalizing');
+    await sleep(500);
+    
+    progress.complete('Task completed!');
+  }
+});
+
 cli.parse(process.argv);

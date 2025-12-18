@@ -3,6 +3,7 @@ export { ParamType } from './interfaces';
 export {
   stripAnsiCodes,
   ProgressIndicator,
+  ProgressBar,
   showSuccess,
   showError,
   showWarning,
