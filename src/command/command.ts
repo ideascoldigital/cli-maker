@@ -185,6 +185,7 @@ export class CLI {
    * Get a specific config value from the setup config.
    * For non-Password fields, returns the raw value.
    * For Password fields, prompts for passphrase if not provided.
+   * Passphrase can be provided via CLI_PASSPHRASE environment variable to skip prompting.
    */
   public async getConfigValue(key: string, passphrase?: string): Promise<any> {
     if (!this.setupSteps) {
@@ -201,7 +202,11 @@ export class CLI {
       // Password field requires passphrase
       let actualPassphrase = passphrase;
       if (!actualPassphrase) {
-        actualPassphrase = await hiddenPrompt('Passphrase to decrypt: ');
+        // Check for environment variable first
+        actualPassphrase = process.env.CLI_PASSPHRASE;
+        if (!actualPassphrase) {
+          actualPassphrase = await hiddenPrompt('Passphrase to decrypt: ');
+        }
       }
       const config = loadSetupConfigUtil(this.name, this.setupSteps, {
         passphrase: actualPassphrase,
@@ -218,6 +223,7 @@ export class CLI {
   /**
    * Load all config values from the setup config.
    * For Password fields, prompts for passphrase if not provided.
+   * Passphrase can be provided via CLI_PASSPHRASE environment variable to skip prompting.
    */
   public async loadConfig(passphrase?: string): Promise<Record<string, any>> {
     if (!this.setupSteps) {
@@ -232,7 +238,11 @@ export class CLI {
       // Password fields require passphrase
       let actualPassphrase = passphrase;
       if (!actualPassphrase) {
-        actualPassphrase = await hiddenPrompt('Passphrase to decrypt: ');
+        // Check for environment variable first
+        actualPassphrase = process.env.CLI_PASSPHRASE;
+        if (!actualPassphrase) {
+          actualPassphrase = await hiddenPrompt('Passphrase to decrypt: ');
+        }
       }
       return loadSetupConfigUtil(this.name, this.setupSteps, {
         passphrase: actualPassphrase,
