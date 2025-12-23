@@ -31,11 +31,73 @@ export function createSetupCommand(cliName: string, options: SetupCommandOptions
     ],
     action: async (args: any) => {
       let passphrase: string | undefined;
-      if (options.encryption?.enabled) {
-        passphrase = await askPassphrase(options.encryption.prompt || 'Passphrase (not stored)');
+      let existingConfig: Record<string, any> = {};
+      
+      // Check if config file exists and has encrypted fields
+      const hasExistingConfig = fs.existsSync(configFile);
+      let hasEncryptedFields = false;
+      
+      if (hasExistingConfig) {
+        try {
+          const rawConfig = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+          hasEncryptedFields = Object.values(rawConfig).some((value: any) => 
+            value && typeof value === 'object' && (value.__enc || value.__b64)
+          );
+        } catch {
+          // Ignore malformed files
+        }
+      }
+      
+      // Only ask for passphrase if we have encrypted fields or encryption is enabled for new config
+      if ((hasEncryptedFields || options.encryption?.enabled)) {
+        if (hasEncryptedFields) {
+          // Validate passphrase against existing encrypted config
+          let validPassphrase = false;
+          while (!validPassphrase) {
+            passphrase = await askPassphrase(options.encryption?.prompt || 'Passphrase to decrypt existing config');
+            if (!passphrase) {
+              console.log(`${Colors.Error}❌ Passphrase is required to modify encrypted configuration.${Colors.Reset}\n`);
+              return;
+            }
+            
+            const testConfig = loadConfig(configFile, options.steps, passphrase);
+            // Check if we successfully decrypted at least one encrypted field
+            const rawConfig = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+            const encryptedKeys = Object.keys(rawConfig).filter(key => {
+              const value = rawConfig[key];
+              return value && typeof value === 'object' && (value.__enc || value.__b64);
+            });
+            
+            if (encryptedKeys.length > 0) {
+              // Verify that at least one encrypted field was successfully decrypted
+              const successfullyDecrypted = encryptedKeys.some(key => 
+                testConfig[key] !== undefined && typeof testConfig[key] === 'string'
+              );
+              
+              if (successfullyDecrypted) {
+                validPassphrase = true;
+                existingConfig = testConfig;
+              } else {
+                console.log(`${Colors.Error}❌ Invalid passphrase. Please try again.${Colors.Reset}\n`);
+              }
+            } else {
+              validPassphrase = true;
+              existingConfig = testConfig;
+            }
+          }
+        } else {
+          // New config with encryption enabled
+          passphrase = await askPassphrase(options.encryption?.prompt || 'Passphrase for encryption (not stored)');
+          if (!passphrase) {
+            console.log(`${Colors.Error}❌ Passphrase is required for encrypted configuration.${Colors.Reset}\n`);
+            return;
+          }
+        }
+      } else {
+        // No encryption, load config normally
+        existingConfig = loadConfig(configFile, options.steps, passphrase);
       }
 
-      const existingConfig = loadConfig(configFile, options.steps, passphrase);
       const answers: Record<string, any> = { ...existingConfig };
 
       // Check if interactive single config selection is requested

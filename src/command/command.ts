@@ -7,6 +7,7 @@ import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions, Se
 import { Validator, ValidatorResult } from './validator';
 import { formatParameterTable, stripAnsiCodes } from '../common';
 import { createSetupCommand, getRawConfig as getRawConfigUtil, loadSetupConfig as loadSetupConfigUtil, hiddenPrompt } from '../setup';
+import { createRotatePassphraseCommand } from '../rotate-passphrase';
 
 const INTRO_PRESETS: Record<string, IntroAnimationOptions> = {
   hacker: {
@@ -132,6 +133,9 @@ export class CLI {
     } else {
       this.executableName = this.name;
     }
+
+    // Add default rotate-passphrase command
+    this.commands.push(createRotatePassphraseCommand(this.name));
   }
 
   private getBinName(): string | null {
