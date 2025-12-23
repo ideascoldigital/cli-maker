@@ -16,6 +16,18 @@ export function createRotatePassphraseCommand(cliName: string): Command {
         description: 'Specific config file to rotate passphrase for (optional)',
         required: false,
         type: ParamType.Text
+      },
+      {
+        name: 'create-backup',
+        description: 'Create backup file before rotation (less secure but allows recovery)',
+        required: false,
+        type: ParamType.Boolean
+      },
+      {
+        name: 'secure-delete-backup',
+        description: 'Securely delete backup after successful rotation (only works with --create-backup)',
+        required: false,
+        type: ParamType.Boolean,
       }
     ],
     action: async (args: any) => {
@@ -87,17 +99,48 @@ export function createRotatePassphraseCommand(cliName: string): Command {
         // Re-encrypt with new passphrase
         const reencryptedConfig = reencryptConfig(rawConfig, decryptedConfig, newPassphrase);
         
-        // Create backup of original config
-        const backupFile = `${configFile}.backup.${Date.now()}`;
-        fs.copyFileSync(configFile, backupFile);
-        console.log(`${Colors.FgGray}📁 Backup created: ${backupFile}${Colors.Reset}`);
+        let backupFile: string | null = null;
+        
+        // Handle backup based on security preferences (default: no backup for security)
+        if (args['create-backup']) {
+          backupFile = `${configFile}.backup.${Date.now()}`;
+          fs.copyFileSync(configFile, backupFile);
+          console.log(`${Colors.FgGray}📁 Backup created: ${backupFile}${Colors.Reset}`);
+          
+          if (args['secure-delete-backup']) {
+            console.log(`${Colors.FgYellow}⚠️  Backup will be securely deleted after successful rotation.${Colors.Reset}`);
+          }
+        } else {
+          console.log(`${Colors.FgGreen}🔒 No backup created (secure by default).${Colors.Reset}`);
+          if (args['secure-delete-backup']) {
+            console.log(`${Colors.FgYellow}⚠️  --secure-delete-backup ignored (no backup created).${Colors.Reset}`);
+          }
+        }
         
         // Write new encrypted config
         fs.writeFileSync(configFile, JSON.stringify(reencryptedConfig, null, 2), 'utf-8');
         
+        // Securely delete backup if requested
+        if (backupFile && args['secure-delete-backup']) {
+          try {
+            secureDeleteFile(backupFile);
+            console.log(`${Colors.FgGray}🗑️  Backup securely deleted.${Colors.Reset}`);
+          } catch (error) {
+            console.log(`${Colors.Warning}⚠️  Warning: Could not securely delete backup file: ${backupFile}${Colors.Reset}`);
+            console.log(`${Colors.FgGray}Please manually delete it: rm "${backupFile}"${Colors.Reset}`);
+          }
+        }
+        
         console.log(`\n${Colors.Success}✅ Passphrase rotated successfully!${Colors.Reset}`);
         console.log(`${Colors.FgGray}Configuration file: ${configFile}${Colors.Reset}`);
-        console.log(`${Colors.FgGray}All encrypted fields have been re-encrypted with the new passphrase.${Colors.Reset}\n`);
+        console.log(`${Colors.FgGray}All encrypted fields have been re-encrypted with the new passphrase.${Colors.Reset}`);
+        
+        if (backupFile && !args['secure-delete-backup']) {
+          console.log(`${Colors.FgYellow}⚠️  Security reminder: Backup file contains old passphrase encryption.${Colors.Reset}`);
+          console.log(`${Colors.FgGray}Consider deleting it manually: rm "${backupFile}"${Colors.Reset}`);
+        }
+        
+        console.log('');
         
       } catch (error) {
         console.log(`${Colors.Error}❌ Error rotating passphrase: ${error instanceof Error ? error.message : 'Unknown error'}${Colors.Reset}\n`);
@@ -189,5 +232,31 @@ function decryptWithPassphrase(payload: any, passphrase: string): string | undef
     return decrypted.toString('utf8');
   } catch {
     return undefined;
+  }
+}
+
+function secureDeleteFile(filePath: string): void {
+  try {
+    // Get file stats to know the size
+    const stats = fs.statSync(filePath);
+    const fileSize = stats.size;
+    
+    // Overwrite file with random data multiple times for security
+    const passes = 3;
+    for (let i = 0; i < passes; i++) {
+      const randomData = crypto.randomBytes(fileSize);
+      fs.writeFileSync(filePath, randomData);
+      fs.fsyncSync(fs.openSync(filePath, 'r+'));
+    }
+    
+    // Finally overwrite with zeros
+    const zeroData = Buffer.alloc(fileSize, 0);
+    fs.writeFileSync(filePath, zeroData);
+    fs.fsyncSync(fs.openSync(filePath, 'r+'));
+    
+    // Delete the file
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    throw new Error(`Failed to securely delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
