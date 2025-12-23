@@ -10,7 +10,8 @@ describe("CLI", () => {
 
     assert.equal(cli.getName(), "Demo CLI");
     assert.equal(cli.getDescription(), "A simple CLI to demonstrate the CLI library");
-    assert.equal(cli.getCommands().length, 0);
+    assert.equal(cli.getCommands().length, 1); // Now includes rotate-passphrase by default
+    assert.equal(cli.getCommands()[0].name, "rotate-passphrase"); // Verify it's the rotate-passphrase command
     assert.equal(cli.getOptions()?.interactive, true);
     assert.equal(cli.getOptions()?.version, "1.0.0");
   });
@@ -46,12 +47,12 @@ describe("CLI", () => {
     };
     cli.command(command);
 
-    const firstCommand = cli.getCommands()[0];
+    const testCommand = cli.getCommands().find(cmd => cmd.name === "test");
 
-    assert.equal(cli.getCommands().length, 1);
-    assert.equal(firstCommand.params.length, 2);
-    assert.equal(firstCommand.params[0].required, true);
-    assert.equal(firstCommand.params[1].required, false);
+    assert.equal(cli.getCommands().length, 2); // rotate-passphrase + test command
+    assert.equal(testCommand!.params.length, 2);
+    assert.equal(testCommand!.params[0].required, true);
+    assert.equal(testCommand!.params[1].required, false);
   });
 
   test("should handle package manager selection", () => {
@@ -72,10 +73,10 @@ describe("CLI", () => {
     };
     cli.command(command);
 
-    const firstCommand = cli.getCommands()[0];
-    assert.equal(firstCommand.params[0].name, "package_manager");
-    assert.equal(firstCommand.params[0].required, true);
-    assert.deepEqual(firstCommand.params[0].options, ['npm', 'bun']);
+    const createCommand = cli.getCommands().find(cmd => cmd.name === "create");
+    assert.equal(createCommand!.params[0].name, "package_manager");
+    assert.equal(createCommand!.params[0].required, true);
+    assert.deepEqual(createCommand!.params[0].options, ['npm', 'bun']);
   });
 
   describe("Parse command", () => {
@@ -125,7 +126,7 @@ describe("CLI", () => {
         console.log = originalLog;
       }
 
-      assert.equal(cli.getCommands().length, 1);
+      assert.equal(cli.getCommands().length, 2); // rotate-passphrase + test command
     });
 
     test("should support params without = like --param1 value1", () => {
@@ -137,7 +138,7 @@ describe("CLI", () => {
       try {
         cli.parse(argv);
         // If we reach here, the parsing was successful
-        assert.equal(cli.getCommands().length, 1);
+        assert.equal(cli.getCommands().length, 2); // rotate-passphrase + test command
       } catch (error) {
         assert.fail("Expected cli.parse to not throw an error");
       }
@@ -197,8 +198,9 @@ describe("CLI", () => {
         console.log = originalLog;
       }
 
-      assert.equal(cli.getCommands().length, 1);
-      assert.equal(cli.getCommands()[0].subcommands?.length, 2);
+      assert.equal(cli.getCommands().length, 2); // rotate-passphrase + project command
+      const projectCommand = cli.getCommands().find(cmd => cmd.name === "project");
+      assert.equal(projectCommand!.subcommands?.length, 2);
     });
 
     test("should show help for subcommands", () => {
@@ -331,8 +333,9 @@ describe("CLI", () => {
         console.log = originalLog;
       }
 
-      assert.equal(cli.getCommands()[0].subcommands?.length, 1);
-      assert.equal(cli.getCommands()[0].subcommands?.[0].subcommands?.length, 1);
+      const appCommand = cli.getCommands().find(cmd => cmd.name === "app");
+      assert.equal(appCommand!.subcommands?.length, 1);
+      assert.equal(appCommand!.subcommands?.[0].subcommands?.length, 1);
     });
   });
 
