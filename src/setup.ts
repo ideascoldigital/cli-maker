@@ -21,8 +21,15 @@ export function createSetupCommand(cliName: string, options: SetupCommandOptions
   return {
     name: commandName,
     description,
-    params: [],
-    action: async () => {
+    params: [
+      {
+        name: 'interactive',
+        description: 'Select a single config option to setup interactively',
+        required: false,
+        type: ParamType.Boolean
+      }
+    ],
+    action: async (args: any) => {
       let passphrase: string | undefined;
       if (options.encryption?.enabled) {
         passphrase = await askPassphrase(options.encryption.prompt || 'Passphrase (not stored)');
@@ -31,20 +38,42 @@ export function createSetupCommand(cliName: string, options: SetupCommandOptions
       const existingConfig = loadConfig(configFile, options.steps, passphrase);
       const answers: Record<string, any> = { ...existingConfig };
 
-      console.log(`\n${Colors.BgBlue}${Colors.FgWhite} SETUP ${Colors.Reset} ${Colors.FgBlue}Configure your CLI step by step${Colors.Reset}\n`);
+      // Check if interactive single config selection is requested
+      if (args?.interactive === true) {
+        console.log(`\n${Colors.BgBlue}${Colors.FgWhite} SETUP ${Colors.Reset} ${Colors.FgBlue}Select a configuration to setup${Colors.Reset}\n`);
+        
+        const selectedStep = await selectSingleConfigStep(options.steps, existingConfig);
+        if (selectedStep) {
+          const value = await askForStep(selectedStep, answers[selectedStep.name], validator);
+          if (value !== undefined) {
+            answers[selectedStep.name] = value;
+          }
+          
+          ensureDir(path.dirname(configFile));
+          const encoded = encodePasswords(options.steps, answers, passphrase);
+          fs.writeFileSync(configFile, JSON.stringify(encoded, null, 2), 'utf-8');
 
-      for (const step of options.steps) {
-        const value = await askForStep(step, answers[step.name], validator);
-        if (value !== undefined) {
-          answers[step.name] = value;
+          console.log(`\n${Colors.Success}✅ Config '${selectedStep.name}' updated in ${configFile}${Colors.Reset}\n`);
+        } else {
+          console.log(`\n${Colors.Warning}Setup cancelled.${Colors.Reset}\n`);
         }
+      } else {
+        // Original behavior - setup all configs
+        console.log(`\n${Colors.BgBlue}${Colors.FgWhite} SETUP ${Colors.Reset} ${Colors.FgBlue}Configure your CLI step by step${Colors.Reset}\n`);
+
+        for (const step of options.steps) {
+          const value = await askForStep(step, answers[step.name], validator);
+          if (value !== undefined) {
+            answers[step.name] = value;
+          }
+        }
+
+        ensureDir(path.dirname(configFile));
+        const encoded = encodePasswords(options.steps, answers, passphrase);
+        fs.writeFileSync(configFile, JSON.stringify(encoded, null, 2), 'utf-8');
+
+        console.log(`\n${Colors.Success}✅ Config stored in ${configFile}${Colors.Reset}\n`);
       }
-
-      ensureDir(path.dirname(configFile));
-      const encoded = encodePasswords(options.steps, answers, passphrase);
-      fs.writeFileSync(configFile, JSON.stringify(encoded, null, 2), 'utf-8');
-
-      console.log(`\n${Colors.Success}✅ Config stored in ${configFile}${Colors.Reset}\n`);
 
       if (options.onComplete) {
         options.onComplete(answers);
@@ -161,6 +190,94 @@ async function askForStep(step: SetupStep, existing: any, validator: Validator):
 
   rl.close();
   return finalValue;
+}
+
+async function selectSingleConfigStep(steps: SetupStep[], existingConfig: Record<string, any>): Promise<SetupStep | null> {
+  console.log(`${Colors.FgYellow}Available configuration options:${Colors.Reset}\n`);
+  console.log(`${Colors.FgGray}Use ↑/↓ arrows to navigate, Enter to select, or 'q' to cancel${Colors.Reset}\n`);
+  
+  const options = [...steps, { name: 'Cancel', description: 'Exit setup', type: ParamType.Text }];
+  let selectedIndex = 0;
+
+  const renderMenu = () => {
+    // Clear previous menu
+    process.stdout.write('\x1b[2J\x1b[H');
+    
+    console.log(`${Colors.FgYellow}Available configuration options:${Colors.Reset}\n`);
+    console.log(`${Colors.FgGray}Use ↑/↓ arrows to navigate, Enter to select, or 'q' to cancel${Colors.Reset}\n`);
+    
+    options.forEach((option, idx) => {
+      const isSelected = idx === selectedIndex;
+      const prefix = isSelected ? `${Colors.BgBlue}${Colors.FgWhite} ▶ ${Colors.Reset}` : '   ';
+      
+      if (idx < steps.length) {
+        const step = steps[idx];
+        const hasValue = existingConfig[step.name] !== undefined;
+        const statusIcon = hasValue ? `${Colors.FgGreen}✓${Colors.Reset}` : `${Colors.FgGray}○${Colors.Reset}`;
+        const valueDisplay = hasValue ? 
+          (step.type === ParamType.Password ? ' (configured)' : ` (${existingConfig[step.name]})`) : 
+          ' (not set)';
+        
+        const highlight = isSelected ? `${Colors.BgBlue}${Colors.FgWhite}` : '';
+        const resetColor = isSelected ? `${Colors.Reset}` : '';
+        
+        console.log(`${prefix}${highlight}${statusIcon} ${Colors.Bright}${step.name}${Colors.Reset}${highlight} - ${step.description}${Colors.FgGray}${valueDisplay}${resetColor}${Colors.Reset}`);
+      } else {
+        // Cancel option
+        const highlight = isSelected ? `${Colors.BgRed}${Colors.FgWhite}` : `${Colors.FgRed}`;
+        const resetColor = isSelected ? `${Colors.Reset}` : `${Colors.Reset}`;
+        console.log(`${prefix}${highlight}Cancel${resetColor}`);
+      }
+    });
+    
+    console.log(`\n${Colors.FgGray}Selected: ${options[selectedIndex].name}${Colors.Reset}`);
+  };
+
+  return new Promise((resolve) => {
+    // Enable raw mode for key detection
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    renderMenu();
+
+    const onKeyPress = (key: string) => {
+      switch (key) {
+        case '\u001b[A': // Up arrow
+          selectedIndex = selectedIndex > 0 ? selectedIndex - 1 : options.length - 1;
+          renderMenu();
+          break;
+        case '\u001b[B': // Down arrow
+          selectedIndex = selectedIndex < options.length - 1 ? selectedIndex + 1 : 0;
+          renderMenu();
+          break;
+        case '\r': // Enter
+          process.stdin.setRawMode(false);
+          process.stdin.removeListener('data', onKeyPress);
+          process.stdin.pause();
+          
+          if (selectedIndex === steps.length) {
+            resolve(null); // Cancel selected
+          } else {
+            resolve(steps[selectedIndex]);
+          }
+          break;
+        case 'q':
+        case 'Q':
+        case '\u0003': // Ctrl+C
+          process.stdin.setRawMode(false);
+          process.stdin.removeListener('data', onKeyPress);
+          process.stdin.pause();
+          resolve(null);
+          break;
+        default:
+          // Ignore other keys
+          break;
+      }
+    };
+
+    process.stdin.on('data', onKeyPress);
+  });
 }
 
 async function askListOption(step: SetupStep, rl: readline.Interface): Promise<number> {
