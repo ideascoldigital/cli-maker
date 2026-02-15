@@ -213,6 +213,23 @@ cli.command({
 });
 
 cli.command({
+  name: 'secure-command',
+  description: 'Command with password parameter',
+  params: [
+    {
+      name: 'secret',
+      description: 'Your secret key',
+      required: true,
+      type: ParamType.Password
+    }
+  ],
+  action: (args) => {
+    console.log('Secret received (length):', args.secret.length);
+    console.log('Secret received:', args.secret);
+  }
+});
+
+cli.command({
   name: 'progress-demo',
   description: 'Simple ProgressBar example',
   params: [],

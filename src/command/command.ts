@@ -9,6 +9,63 @@ import { formatParameterTable, stripAnsiCodes } from '../common';
 import { createSetupCommand, getRawConfig as getRawConfigUtil, loadSetupConfig as loadSetupConfigUtil, hiddenPrompt } from '../setup';
 import { createRotatePassphraseCommand } from '../rotate-passphrase';
 
+function generatePixelAsciiArt(text: string): string[] {
+  const font: Record<string, string[]> = {
+    'A': ['███', '█ █', '███', '█ █', '█ █'],
+    'B': ['██ ', '█ █', '██ ', '█ █', '██ '],
+    'C': ['███', '█  ', '█  ', '█  ', '███'],
+    'D': ['██ ', '█ █', '█ █', '█ █', '██ '],
+    'E': ['███', '█  ', '██ ', '█  ', '███'],
+    'F': ['███', '█  ', '██ ', '█  ', '█  '],
+    'G': ['███', '█  ', '█ █', '█ █', '███'],
+    'H': ['█ █', '█ █', '███', '█ █', '█ █'],
+    'I': ['███', ' █ ', ' █ ', ' █ ', '███'],
+    'J': ['███', '  █', '  █', '█ █', '███'],
+    'K': ['█ █', '██ ', '█  ', '██ ', '█ █'],
+    'L': ['█  ', '█  ', '█  ', '█  ', '███'],
+    'M': ['█ █', '███', '███', '█ █', '█ █'],
+    'N': ['█ █', '███', '███', '███', '█ █'],
+    'O': ['███', '█ █', '█ █', '█ █', '███'],
+    'P': ['██ ', '█ █', '██ ', '█  ', '█  '],
+    'Q': ['███', '█ █', '█ █', '███', '  █'],
+    'R': ['██ ', '█ █', '██ ', '█ █', '█ █'],
+    'S': ['███', '█  ', '███', '  █', '███'],
+    'T': ['███', ' █ ', ' █ ', ' █ ', ' █ '],
+    'U': ['█ █', '█ █', '█ █', '█ █', '███'],
+    'V': ['█ █', '█ █', '█ █', '█ █', ' █ '],
+    'W': ['█ █', '█ █', '███', '███', '█ █'],
+    'X': ['█ █', '█ █', ' █ ', '█ █', '█ █'],
+    'Y': ['█ █', '█ █', ' █ ', ' █ ', ' █ '],
+    'Z': ['███', '  █', ' █ ', '█  ', '███'],
+    '-': ['   ', '   ', '███', '   ', '   '],
+    ' ': ['   ', '   ', '   ', '   ', '   '],
+    '0': ['███', '█ █', '█ █', '█ █', '███'],
+    '1': [' █ ', '██ ', ' █ ', ' █ ', '███'],
+    '2': ['██ ', '  █', '███', '█  ', '███'],
+    '3': ['██ ', '  █', '██ ', '  █', '██ '],
+    '4': ['█ █', '█ █', '███', '  █', '  █'],
+    '5': ['███', '█  ', '██ ', '  █', '██ '],
+    '6': ['███', '█  ', '███', '█ █', '███'],
+    '7': ['███', '  █', ' █ ', ' █ ', ' █ '],
+    '8': ['███', '█ █', '███', '█ █', '███'],
+    '9': ['███', '█ █', '███', '  █', '███'],
+  };
+
+  const upperText = text.toUpperCase();
+  const lines: string[] = ['', '', '', '', ''];
+  
+  for (let i = 0; i < upperText.length; i++) {
+    const char = upperText[i];
+    const charLines = font[char] || font[' '];
+    
+    for (let row = 0; row < 5; row++) {
+      lines[row] += charLines[row] + ' ';
+    }
+  }
+  
+  return lines.map(line => line.trimEnd());
+}
+
 const INTRO_PRESETS: Record<string, IntroAnimationOptions> = {
   hacker: {
     frames: ['▌', ' ', '▌', ' '],
@@ -639,6 +696,44 @@ export class CLI {
     if (!intro) return { enabled: false, showOnce: true };
     const preset = intro.preset ? INTRO_PRESETS[intro.preset] : undefined;
 
+    const replacePlaceholders = (text?: string): string | undefined => {
+      if (!text) return text;
+      return text
+        .replace(/\{\{cliName\}\}/g, this.name)
+        .replace(/\{\{cliDescription\}\}/g, this.description);
+    };
+
+    const extractCliNameWithoutCompany = (fullName: string): string => {
+      const parts = fullName.split('/');
+      return parts.length > 1 ? parts[1] : fullName;
+    };
+
+    const extractCompany = (fullName: string): string | null => {
+      const parts = fullName.split('/');
+      return parts.length > 1 ? parts[0] : null;
+    };
+
+    let resolvedTitle = replacePlaceholders(intro.title ?? preset?.title);
+    let resolvedSubtitle = replacePlaceholders(intro.subtitle ?? preset?.subtitle);
+    let resolvedLines = intro.lines ?? preset?.lines;
+    let resolvedAsciiArt = intro.asciiArt ?? preset?.asciiArt;
+
+    if (intro.preset === 'ascii-art') {
+      const cliNameOnly = extractCliNameWithoutCompany(this.name);
+      const company = extractCompany(this.name);
+      
+      resolvedAsciiArt = generatePixelAsciiArt(cliNameOnly).map(line => 
+        `${Colors.FgYellow}${line}${Colors.Reset}`
+      );
+      
+      resolvedTitle = undefined;
+      resolvedSubtitle = undefined;
+      
+      if (company) {
+        resolvedLines = [`${Colors.FgGray}by ${company}${Colors.Reset}`];
+      }
+    }
+
     return {
       enabled: intro.enabled ?? preset?.enabled ?? false,
       showOnce: intro.showOnce ?? preset?.showOnce ?? true,
@@ -649,10 +744,10 @@ export class CLI {
       padding: intro.padding ?? preset?.padding,
       speedMs: intro.speedMs ?? preset?.speedMs,
       loops: intro.loops ?? preset?.loops,
-      lines: intro.lines ?? preset?.lines,
-      asciiArt: intro.asciiArt ?? preset?.asciiArt,
-      title: intro.title ?? preset?.title,
-      subtitle: intro.subtitle ?? preset?.subtitle,
+      lines: resolvedLines,
+      asciiArt: resolvedAsciiArt,
+      title: resolvedTitle,
+      subtitle: resolvedSubtitle,
       storageKey: intro.storageKey ?? preset?.storageKey,
     };
   }
