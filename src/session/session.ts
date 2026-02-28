@@ -1,4 +1,5 @@
 import readline from 'readline';
+import { execSync } from 'child_process';
 import { Colors } from '../colors';
 import { ProgressIndicator, stripAnsiCodes } from '../common';
 import { renderMarkdown } from './markdown';
@@ -84,6 +85,39 @@ export class InteractiveSession {
 
       const trimmed = input.trim();
       if (trimmed.length === 0) continue;
+
+      // Shell command (! prefix)
+      if (trimmed.startsWith('!')) {
+        const shellCmd = trimmed.slice(1).trim();
+        if (shellCmd.length === 0) {
+          console.log(`  ${Colors.FgGray}Usage: ! <command>  (e.g. ! ls, ! pwd, ! git status)${Colors.Reset}\n`);
+        } else {
+          console.log(`  ${Colors.FgGray}$ ${shellCmd}${Colors.Reset}`);
+          try {
+            const output = execSync(shellCmd, {
+              encoding: 'utf-8',
+              stdio: ['pipe', 'pipe', 'pipe'],
+              timeout: 30_000,
+              cwd: process.cwd(),
+            });
+            if (output.trim().length > 0) {
+              // Indent output for visual consistency
+              const indented = output.trimEnd().split('\n').map(l => `  ${l}`).join('\n');
+              console.log(indented);
+            }
+          } catch (err: any) {
+            if (err.stderr) {
+              const indented = err.stderr.toString().trimEnd().split('\n').map((l: string) => `  ${l}`).join('\n');
+              console.log(`${Colors.FgRed}${indented}${Colors.Reset}`);
+            }
+            if (err.status != null) {
+              console.log(`  ${Colors.FgGray}exit code: ${err.status}${Colors.Reset}`);
+            }
+          }
+          console.log('');
+        }
+        continue;
+      }
 
       // Slash command
       if (trimmed.startsWith('/')) {
