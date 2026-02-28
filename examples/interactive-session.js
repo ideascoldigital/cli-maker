@@ -117,7 +117,7 @@ cli.command({
 
       theme: {
         borderColor: '\x1b[32m',   // green
-        borderStyle: 'dashed',
+        borderStyle: 'rounded',
         promptColor: '\x1b[32m',
         accentColor: '\x1b[36m',
       },

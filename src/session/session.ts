@@ -133,6 +133,15 @@ export class InteractiveSession {
           break;
         }
 
+        // /clear: clear screen + re-show welcome header
+        if (cmdName === 'clear') {
+          process.stdout.write('\x1B[2J\x1B[0;0H');
+          this.renderWelcomeScreen();
+          const termW = process.stdout.columns || 80;
+          console.log(`  ${Colors.FgGray}${'─'.repeat(Math.max(10, termW - 4))}${Colors.Reset}\n`);
+          continue;
+        }
+
         const cmd = this.slashCommands.find(c => c.name === cmdName);
         if (cmd) {
           await cmd.action(cmdArgs, this.buildContext());

@@ -69,34 +69,58 @@ export function drawBox(contentLines: string[], opts: BoxOptions = {}): string {
 
 /**
  * Draw a two-column box panel (like Claude Code's welcome screen).
+ * Spans the full terminal width with a ~45%/55% column split.
  */
 export function drawTwoColumnBox(
   leftLines: string[],
   rightLines: string[],
-  opts: BoxOptions & { dividerChar?: string } = {}
+  opts: BoxOptions & { dividerChar?: string; leftRatio?: number } = {}
 ): string {
-  const border = BORDERS[opts.borderStyle ?? 'dashed'];
-  const bColor = opts.borderColor ?? Colors.FgGreen;
+  const border = BORDERS[opts.borderStyle ?? 'rounded'];
+  const bColor = opts.borderColor ?? Colors.FgGray;
   const pad = opts.padding ?? 1;
   const termWidth = process.stdout.columns || 80;
-  const maxW = opts.maxWidth ?? termWidth - 4;
+  const maxW = opts.maxWidth ?? termWidth;
 
-  const leftWidths = leftLines.map(l => stripAnsiCodes(l).length);
-  const rightWidths = rightLines.map(l => stripAnsiCodes(l).length);
+  // Total inner width = maxW - 2 (for left + right border chars)
+  const totalInner = maxW - 2;
 
-  const leftW = Math.max(...leftWidths, 10);
-  const rightW = Math.max(...rightWidths, 10);
-
+  // Column split: left gets ~45%, right gets ~55% (minus divider and padding)
+  const ratio = opts.leftRatio ?? 0.45;
   const divider = opts.dividerChar ?? border.v;
-  // inner = pad + leftW + pad + divider + pad + rightW + pad
-  const totalInner = pad + leftW + pad + 1 + pad + rightW + pad;
-  const clampedTotal = Math.min(totalInner, maxW);
-
-  // Recalculate right width if clamped
-  const effectiveRightW = Math.max(10, clampedTotal - pad - leftW - pad - 1 - pad - pad);
+  // Layout: pad + leftW + pad + divider + pad + rightW + pad
+  const overhead = pad * 4 + 1; // 4 pads + 1 divider
+  const usable = totalInner - overhead;
+  const leftW = Math.max(10, Math.floor(usable * ratio));
+  const rightW = Math.max(10, usable - leftW);
 
   const maxRows = Math.max(leftLines.length, rightLines.length);
   const padStr = ' '.repeat(pad);
+
+  // Truncate a string (with ANSI) to fit a given visible width
+  const truncate = (s: string, maxLen: number): string => {
+    const clean = stripAnsiCodes(s);
+    if (clean.length <= maxLen) return s;
+    // Simple truncation: walk the string and count visible chars
+    let visible = 0;
+    let i = 0;
+    let inEsc = false;
+    let result = '';
+    while (i < s.length && visible < maxLen - 1) {
+      if (s[i] === '\x1b') {
+        inEsc = true;
+        result += s[i];
+      } else if (inEsc) {
+        result += s[i];
+        if (/[a-zA-Z]/.test(s[i])) inEsc = false;
+      } else {
+        result += s[i];
+        visible++;
+      }
+      i++;
+    }
+    return result + '\u2026' + Colors.Reset;
+  };
 
   const output: string[] = [];
 
@@ -104,28 +128,30 @@ export function drawTwoColumnBox(
   if (opts.title) {
     const tColor = opts.titleColor ?? Colors.Bright;
     const titleClean = stripAnsiCodes(opts.title);
-    const remaining = Math.max(0, clampedTotal - titleClean.length - 3);
-    output.push(`${bColor}${border.tl}${border.h} ${Colors.Reset}${tColor}${opts.title}${Colors.Reset}${bColor} ${border.h.repeat(remaining)}${border.tr}${Colors.Reset}`);
+    const remaining = Math.max(0, totalInner - titleClean.length - 4);
+    output.push(`${bColor}${border.tl}${border.h}${border.h}${border.h} ${Colors.Reset}${tColor}${opts.title}${Colors.Reset}${bColor} ${border.h.repeat(remaining)}${border.tr}${Colors.Reset}`);
   } else {
-    output.push(`${bColor}${border.tl}${border.h.repeat(clampedTotal)}${border.tr}${Colors.Reset}`);
+    output.push(`${bColor}${border.tl}${border.h.repeat(totalInner)}${border.tr}${Colors.Reset}`);
   }
 
   // Rows
   for (let i = 0; i < maxRows; i++) {
-    const left = leftLines[i] ?? '';
-    const right = rightLines[i] ?? '';
+    const rawLeft = leftLines[i] ?? '';
+    const rawRight = rightLines[i] ?? '';
+    const left = truncate(rawLeft, leftW);
+    const right = truncate(rawRight, rightW);
     const leftClean = stripAnsiCodes(left).length;
     const rightClean = stripAnsiCodes(right).length;
-    const leftPad = Math.max(0, leftW - leftClean);
-    const rightPad = Math.max(0, effectiveRightW - rightClean);
+    const leftPadR = Math.max(0, leftW - leftClean);
+    const rightPadR = Math.max(0, rightW - rightClean);
 
     output.push(
-      `${bColor}${border.v}${Colors.Reset}${padStr}${left}${' '.repeat(leftPad)}${padStr}${bColor}${divider}${Colors.Reset}${padStr}${right}${' '.repeat(rightPad)}${padStr}${bColor}${border.v}${Colors.Reset}`
+      `${bColor}${border.v}${Colors.Reset}${padStr}${left}${' '.repeat(leftPadR)}${padStr}${bColor}${divider}${Colors.Reset}${padStr}${right}${' '.repeat(rightPadR)}${padStr}${bColor}${border.v}${Colors.Reset}`
     );
   }
 
   // Bottom border
-  output.push(`${bColor}${border.bl}${border.h.repeat(clampedTotal)}${border.br}${Colors.Reset}`);
+  output.push(`${bColor}${border.bl}${border.h.repeat(totalInner)}${border.br}${Colors.Reset}`);
 
   return output.join('\n');
 }
