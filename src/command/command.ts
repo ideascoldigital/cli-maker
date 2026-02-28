@@ -3,7 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { Colors } from '../colors';
-import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions, SetupCommandOptions, SetupStep } from '../interfaces';
+import { ParamType, Command, CLIOptions, CommandParam, IntroAnimationOptions, SetupCommandOptions, SetupStep, SessionOptions } from '../interfaces';
+import { InteractiveSession } from '../session/session';
 import { Validator, ValidatorResult } from './validator';
 import { formatParameterTable, stripAnsiCodes } from '../common';
 import { createSetupCommand, getRawConfig as getRawConfigUtil, loadSetupConfig as loadSetupConfigUtil, hiddenPrompt } from '../setup';
@@ -313,6 +314,16 @@ export class CLI {
       // No password fields, return raw config
       return getRawConfigUtil(this.name, { configFileName: this.setupConfigFileName });
     }
+  }
+
+  /**
+   * Start an interactive REPL session with slash commands, tool calls,
+   * streaming output, and conversation history.
+   * The returned promise resolves when the user exits the session.
+   */
+  public async startSession(options: SessionOptions): Promise<void> {
+    const session = new InteractiveSession(options);
+    return session.start();
   }
 
   public setOptions(options: CLIOptions) {

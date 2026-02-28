@@ -14,7 +14,9 @@
     "prepublishOnly": "npm run build",
     "example": "bun run examples/index.js",
     "example:setup": "bun examples/index.js setup",
-    "dev": "bun run src/bin/commands/index.ts"
+    "dev": "bun run src/bin/commands/index.ts",
+    "example:chat": "bun examples/interactive-session.js chat",
+    "example:stream": "bun examples/interactive-session.js stream-chat"
   },
   "bin": {
     "cli-maker": "./dist/bin/cli.js"

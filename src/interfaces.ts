@@ -145,3 +145,145 @@ export interface LoadConfigOptions {
    */
   passphrase?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Interactive Session types
+// ---------------------------------------------------------------------------
+
+export interface SessionMessage {
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  /**
+   * Present when role is 'tool' — the name of the tool that produced this message.
+   */
+  toolName?: string;
+}
+
+export interface ToolParameter {
+  name: string;
+  description: string;
+  type: 'string' | 'number' | 'boolean';
+  required?: boolean;
+}
+
+export interface Tool {
+  name: string;
+  description: string;
+  parameters?: ToolParameter[];
+  execute: (args: Record<string, any>, ctx: SessionContext) => any | Promise<any>;
+}
+
+export interface SlashCommand {
+  /**
+   * Command name without the '/' prefix, e.g. 'help'.
+   */
+  name: string;
+  description: string;
+  action: (args: string, ctx: SessionContext) => void | Promise<void>;
+}
+
+export interface SessionContext {
+  /**
+   * Conversation history for the current session.
+   */
+  history: SessionMessage[];
+  /**
+   * Registered tools.
+   */
+  tools: Tool[];
+  /**
+   * Invoke a registered tool by name.
+   */
+  callTool: (name: string, args: Record<string, any>) => Promise<any>;
+  /**
+   * Write text to stdout (respects session formatting).
+   */
+  print: (text: string) => void;
+  /**
+   * Render an async stream of string chunks token-by-token (useful for LLM streaming).
+   */
+  printStream: (stream: AsyncIterable<string>) => Promise<void>;
+  /**
+   * Render a string as formatted markdown in the terminal.
+   */
+  printMarkdown: (md: string) => void;
+  /**
+   * A reusable spinner/progress indicator.
+   */
+  spinner: import('./common').ProgressIndicator;
+  /**
+   * Reference to the running InteractiveSession instance.
+   */
+  session: any; // avoids circular import – typed as InteractiveSession at runtime
+}
+
+export interface SessionTheme {
+  /**
+   * Color for panel borders. Default: green.
+   */
+  borderColor?: string;
+  /**
+   * Border style for panels. Default: 'dashed'.
+   */
+  borderStyle?: 'single' | 'double' | 'dashed' | 'rounded';
+  /**
+   * Color for the prompt indicator. Default: green.
+   */
+  promptColor?: string;
+  /**
+   * Color for accent elements (headers, labels). Default: cyan.
+   */
+  accentColor?: string;
+}
+
+export interface SessionOptions {
+  /**
+   * Prompt string shown before each user input. Default: '> '.
+   */
+  prompt?: string;
+  /**
+   * Message displayed when the session starts (left side of welcome panel).
+   */
+  welcomeMessage?: string;
+  /**
+   * Tips or hints displayed on the right side of the welcome panel.
+   * Each item has a title and body lines.
+   */
+  tips?: Array<{ title: string; lines: string[] }>;
+  /**
+   * Info lines shown below the welcome panel (e.g. version, path, model).
+   */
+  infoLines?: string[];
+  /**
+   * Visual theme for the session UI.
+   */
+  theme?: SessionTheme;
+  /**
+   * Maximum number of messages to keep in history. Default: 100.
+   */
+  historySize?: number;
+  /**
+   * Allow multi-line input with trailing backslash. Default: true.
+   */
+  multiLineEnabled?: boolean;
+  /**
+   * Custom slash commands (merged with built-ins).
+   */
+  slashCommands?: SlashCommand[];
+  /**
+   * Tools/functions that can be called during the session.
+   */
+  tools?: Tool[];
+  /**
+   * Called for every non-slash-command user message.
+   */
+  onMessage: (message: string, ctx: SessionContext) => void | Promise<void>;
+  /**
+   * Called once when the session starts, before the first prompt.
+   */
+  onStart?: (ctx: SessionContext) => void | Promise<void>;
+  /**
+   * Called once when the session ends (user types /exit or Ctrl+D).
+   */
+  onEnd?: (ctx: SessionContext) => void | Promise<void>;
+}
