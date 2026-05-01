@@ -248,3 +248,167 @@ describe('SlashCommand interface validation', () => {
     assert.equal(typeof cmd.action, 'function');
   });
 });
+
+describe('handleShellCommand — security surface', () => {
+  describe('default (shellCommandsEnabled not set)', () => {
+    it('blocks execution and returns status=disabled', () => {
+      const session = new InteractiveSession({ onMessage: async () => {} });
+      const result = session.handleShellCommand('echo hello');
+      assert.equal(result.status, 'disabled');
+      assert.equal(result.command, 'echo hello');
+      assert.ok(result.message && result.message.includes('disabled'));
+      assert.equal(result.output, undefined);
+    });
+
+    it('blocks even when input is dangerous-looking', () => {
+      const session = new InteractiveSession({ onMessage: async () => {} });
+      const result = session.handleShellCommand('rm -rf /');
+      assert.equal(result.status, 'disabled');
+      assert.equal(result.output, undefined);
+    });
+  });
+
+  describe('shellCommandsEnabled: false (explicit)', () => {
+    it('blocks execution', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: false,
+      });
+      const result = session.handleShellCommand('echo hi');
+      assert.equal(result.status, 'disabled');
+    });
+  });
+
+  describe('empty input', () => {
+    it('returns status=empty for empty string', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+      });
+      const result = session.handleShellCommand('');
+      assert.equal(result.status, 'empty');
+      assert.ok(result.message && result.message.includes('Usage'));
+    });
+
+    it('returns status=empty for whitespace-only input', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+      });
+      const result = session.handleShellCommand('   ');
+      assert.equal(result.status, 'empty');
+    });
+  });
+
+  describe('shellCommandsEnabled: true, no allowlist', () => {
+    it('executes a benign command and returns its output', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+      });
+      const result = session.handleShellCommand('echo cli-maker-test');
+      assert.equal(result.status, 'ok');
+      assert.ok(result.output && result.output.includes('cli-maker-test'));
+    });
+
+    it('returns status=error with exitCode for failing command', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+      });
+      const result = session.handleShellCommand('false');
+      assert.equal(result.status, 'error');
+      assert.notEqual(result.exitCode, 0);
+      assert.notEqual(result.exitCode, null);
+    });
+  });
+
+  describe('allowedShellCommands allowlist', () => {
+    it('allows commands whose first token matches the allowlist', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+        allowedShellCommands: ['echo', 'pwd'],
+      });
+      const result = session.handleShellCommand('echo allowed');
+      assert.equal(result.status, 'ok');
+      assert.ok(result.output && result.output.includes('allowed'));
+    });
+
+    it('blocks commands whose first token is not in the allowlist', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+        allowedShellCommands: ['echo'],
+      });
+      const result = session.handleShellCommand('ls -la');
+      assert.equal(result.status, 'not-allowed');
+      assert.ok(result.message && result.message.includes('ls'));
+      assert.equal(result.output, undefined);
+    });
+
+    it('matches only the first token, not arguments', () => {
+      // 'rm' should be blocked even when masked by trailing 'echo' arg
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+        allowedShellCommands: ['echo'],
+      });
+      const result = session.handleShellCommand('rm /tmp/echo');
+      assert.equal(result.status, 'not-allowed');
+    });
+
+    it('empty allowlist falls through to no allowlist (executes everything)', () => {
+      // Empty array is treated as "no allowlist configured"
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+        allowedShellCommands: [],
+      });
+      const result = session.handleShellCommand('echo unrestricted');
+      assert.equal(result.status, 'ok');
+    });
+
+    it('disabled flag overrides allowlist', () => {
+      // Even with a permissive allowlist, the master switch wins
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: false,
+        allowedShellCommands: ['echo', 'ls', 'pwd'],
+      });
+      const result = session.handleShellCommand('echo hi');
+      assert.equal(result.status, 'disabled');
+    });
+  });
+
+  describe('regression: non-shell features unaffected', () => {
+    it('default session still constructs with empty history', () => {
+      const session = new InteractiveSession({ onMessage: async () => {} });
+      assert.equal(session.getHistory().length, 0);
+    });
+
+    it('session with full security options still constructs cleanly', () => {
+      const session = new InteractiveSession({
+        onMessage: async () => {},
+        shellCommandsEnabled: true,
+        allowedShellCommands: ['echo'],
+        tools: [
+          {
+            name: 'noop',
+            description: 'no-op',
+            execute: async () => 'ok',
+          },
+        ],
+        slashCommands: [
+          {
+            name: 'custom',
+            description: 'custom cmd',
+            action: () => {},
+          },
+        ],
+      });
+      assert.ok(session);
+      assert.equal(session.getHistory().length, 0);
+    });
+  });
+});

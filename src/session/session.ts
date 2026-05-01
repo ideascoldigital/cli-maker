@@ -19,6 +19,7 @@ import type {
   SessionContext,
   SessionMessage,
   SessionTheme,
+  ShellCommandResult,
   SlashCommand,
   Tool,
 } from '../interfaces';
@@ -89,33 +90,8 @@ export class InteractiveSession {
       // Shell command (! prefix)
       if (trimmed.startsWith('!')) {
         const shellCmd = trimmed.slice(1).trim();
-        if (shellCmd.length === 0) {
-          console.log(`  ${Colors.FgGray}Usage: ! <command>  (e.g. ! ls, ! pwd, ! git status)${Colors.Reset}\n`);
-        } else {
-          console.log(`  ${Colors.FgGray}$ ${shellCmd}${Colors.Reset}`);
-          try {
-            const output = execSync(shellCmd, {
-              encoding: 'utf-8',
-              stdio: ['pipe', 'pipe', 'pipe'],
-              timeout: 30_000,
-              cwd: process.cwd(),
-            });
-            if (output.trim().length > 0) {
-              // Indent output for visual consistency
-              const indented = output.trimEnd().split('\n').map(l => `  ${l}`).join('\n');
-              console.log(indented);
-            }
-          } catch (err: any) {
-            if (err.stderr) {
-              const indented = err.stderr.toString().trimEnd().split('\n').map((l: string) => `  ${l}`).join('\n');
-              console.log(`${Colors.FgRed}${indented}${Colors.Reset}`);
-            }
-            if (err.status != null) {
-              console.log(`  ${Colors.FgGray}exit code: ${err.status}${Colors.Reset}`);
-            }
-          }
-          console.log('');
-        }
+        const result = this.handleShellCommand(shellCmd);
+        this.renderShellResult(result);
         continue;
       }
 
@@ -176,6 +152,87 @@ export class InteractiveSession {
    */
   stop(): void {
     this.running = false;
+  }
+
+  /**
+   * Execute a shell command entered via the `!` prefix. Pure function over
+   * options + input; returns a structured result. Exposed for testing and
+   * for advanced consumers that want to drive shell execution programmatically.
+   *
+   * Security: returns `{ status: 'disabled' }` unless `shellCommandsEnabled`
+   * is true. When `allowedShellCommands` is set, only commands whose first
+   * whitespace-delimited token matches an entry will execute.
+   */
+  handleShellCommand(shellCmd: string): ShellCommandResult {
+    const cmd = shellCmd.trim();
+
+    if (cmd.length === 0) {
+      return { status: 'empty', command: cmd, message: 'Usage: ! <command>  (e.g. ! ls, ! pwd, ! git status)' };
+    }
+
+    if (!this.options.shellCommandsEnabled) {
+      return {
+        status: 'disabled',
+        command: cmd,
+        message: 'Shell commands are disabled. Pass `shellCommandsEnabled: true` in SessionOptions to enable.',
+      };
+    }
+
+    const allowlist = this.options.allowedShellCommands;
+    if (allowlist && allowlist.length > 0) {
+      const firstToken = cmd.split(/\s+/)[0];
+      if (!allowlist.includes(firstToken)) {
+        return {
+          status: 'not-allowed',
+          command: cmd,
+          message: `Command '${firstToken}' is not in the allowlist. Allowed: ${allowlist.join(', ')}`,
+        };
+      }
+    }
+
+    try {
+      const output = execSync(cmd, {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 30_000,
+        cwd: process.cwd(),
+      });
+      return { status: 'ok', command: cmd, output };
+    } catch (err: any) {
+      return {
+        status: 'error',
+        command: cmd,
+        stderr: err?.stderr ? err.stderr.toString() : undefined,
+        exitCode: err?.status ?? null,
+        message: err?.message,
+      };
+    }
+  }
+
+  private renderShellResult(result: ShellCommandResult): void {
+    if (result.status === 'empty' || result.status === 'disabled' || result.status === 'not-allowed') {
+      console.log(`  ${Colors.FgGray}${result.message}${Colors.Reset}\n`);
+      return;
+    }
+
+    console.log(`  ${Colors.FgGray}$ ${result.command}${Colors.Reset}`);
+
+    if (result.status === 'ok' && result.output && result.output.trim().length > 0) {
+      const indented = result.output.trimEnd().split('\n').map(l => `  ${l}`).join('\n');
+      console.log(indented);
+    }
+
+    if (result.status === 'error') {
+      if (result.stderr) {
+        const indented = result.stderr.trimEnd().split('\n').map((l: string) => `  ${l}`).join('\n');
+        console.log(`${Colors.FgRed}${indented}${Colors.Reset}`);
+      }
+      if (result.exitCode != null) {
+        console.log(`  ${Colors.FgGray}exit code: ${result.exitCode}${Colors.Reset}`);
+      }
+    }
+
+    console.log('');
   }
 
   /**

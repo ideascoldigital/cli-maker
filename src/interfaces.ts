@@ -286,4 +286,26 @@ export interface SessionOptions {
    * Called once when the session ends (user types /exit or Ctrl+D).
    */
   onEnd?: (ctx: SessionContext) => void | Promise<void>;
+  /**
+   * Enable shell command execution via the `!` prefix. Disabled by default
+   * because it executes arbitrary user input via child_process.execSync.
+   * Consumers must opt in explicitly.
+   */
+  shellCommandsEnabled?: boolean;
+  /**
+   * Optional allowlist of shell command names (first whitespace-delimited
+   * token of the input). When set, only commands whose first token matches
+   * an entry are executed; everything else is blocked with a message.
+   * Has no effect when shellCommandsEnabled is false.
+   */
+  allowedShellCommands?: string[];
+}
+
+export interface ShellCommandResult {
+  status: 'ok' | 'disabled' | 'empty' | 'not-allowed' | 'error';
+  command: string;
+  output?: string;
+  stderr?: string;
+  exitCode?: number | null;
+  message?: string;
 }

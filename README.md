@@ -2,6 +2,8 @@
 
 A library to help create CLIs with support for command parameters and interactive prompts.
 
+[![Socket Badge](https://badge.socket.dev/npm/package/@ideascol/cli-maker/1.12.0)](https://badge.socket.dev/npm/package/@ideascol/cli-maker/1.12.0)
+
 ## Quick start
 
 ```bash
@@ -265,6 +267,36 @@ console.log(`Secret received (length: ${secret.length})`);
 
 - **`CLI.askQuestion(question: string)`**: Static method to prompt for visible input
 - **`CLI.askHiddenQuestion(question: string)`**: Static method to prompt for hidden input (shows asterisks)
+
+## Security
+
+### Shell command execution in `InteractiveSession`
+
+The `InteractiveSession` REPL supports a `!` prefix to run shell commands
+(e.g. `! git status`). Because this passes user input to `child_process.execSync`,
+**it is disabled by default**. Static analysis tools may still flag the
+underlying call site; this is by design and is documented in [SECURITY.md](./SECURITY.md).
+
+Opt in only when your REPL is local developer tooling and you trust the
+input source:
+
+```ts
+new InteractiveSession({
+  onMessage: async (msg, ctx) => { /* ... */ },
+  shellCommandsEnabled: true,
+  // Optional: restrict to a fixed set of command names (matched on the
+  // first whitespace-delimited token).
+  allowedShellCommands: ['git', 'ls', 'pwd'],
+});
+```
+
+Behavior:
+
+- `shellCommandsEnabled: false` (default) — `!` prints a disabled message; no shell call is made.
+- `shellCommandsEnabled: true` with no allowlist — any shell command runs (30s timeout).
+- `shellCommandsEnabled: true` with `allowedShellCommands` — only commands whose first token matches the allowlist run; others are blocked with a message.
+
+If your CLI accepts input from untrusted sources, **do not** enable shell commands.
 
 ### Password Type in Interactive Mode
 

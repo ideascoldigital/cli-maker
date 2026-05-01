@@ -1,6 +1,6 @@
 {
   "name": "@ideascol/cli-maker",
-  "version": "1.12.0",
+  "version": "2.0.0",
   "description": "A simple library to help create CLIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,8 @@
   "scripts": {
     "build": "tsc",
     "test": "bun test",
-    "prepublishOnly": "npm run build",
+    "publish:provenance": "npm publish --provenance --access public",
+    "prepublishOnly": "npm run build && npm test",
     "example": "bun run examples/index.js",
     "example:setup": "bun examples/index.js setup",
     "dev": "bun run src/bin/commands/index.ts",
