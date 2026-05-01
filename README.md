@@ -2,7 +2,7 @@
 
 A library to help create CLIs with support for command parameters and interactive prompts.
 
-[![Socket Badge](https://badge.socket.dev/npm/package/@ideascol/cli-maker/1.12.0)](https://badge.socket.dev/npm/package/@ideascol/cli-maker/1.12.0)
+[![Socket Badge](https://badge.socket.dev/npm/package/@ideascol/cli-maker/2.0.0)](https://badge.socket.dev/npm/package/@ideascol/cli-maker/2.0.0)
 
 ## Quick start
 
