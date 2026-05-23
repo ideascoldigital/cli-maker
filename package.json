@@ -5,6 +5,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://github.com/ideascoldigital/cli-maker",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ideascoldigital/cli-maker.git"
+  },
   "bugs": {
     "url": "https://github.com/ideascoldigital/cli-maker/issues"
   },
@@ -20,7 +24,7 @@
     "example:stream": "bun examples/interactive-session.js stream-chat"
   },
   "bin": {
-    "cli-maker": "./dist/bin/cli.js"
+    "cli-maker": "dist/bin/cli.js"
   },
   "author": "Jairo Fernández",
   "license": "MIT",
