@@ -1,0 +1,48 @@
+name: Publish plugin branch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'skills/**'
+      - 'commands/**'
+      - 'plugin-meta/**'
+      - '.github/workflows/publish-plugin.yml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build plugin tree
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/plugin"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/.claude-plugin"
+
+          cp -r skills "$OUT/"
+          cp -r commands "$OUT/"
+          cp plugin-meta/plugin.json "$OUT/.claude-plugin/plugin.json"
+          cp plugin-meta/marketplace.json "$OUT/.claude-plugin/marketplace.json"
+          cp plugin-meta/README.md "$OUT/README.md"
+
+      - name: Push to plugin branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/plugin"
+          git init -b plugin
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Publish plugin from ${SHA}"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git push --force origin plugin

@@ -10,6 +10,30 @@ A library to help create CLIs with support for command parameters and interactiv
 npx @ideascol/cli-maker
 ```
 
+## Claude Code plugin
+
+Install the bundled skills and slash commands inside Claude Code:
+
+```bash
+/plugin marketplace add ideascoldigital/cli-maker@plugin
+/plugin install cli-maker@ideascoldigital
+```
+
+The `@plugin` ref points at a slim auto-generated branch (only `.claude-plugin/`, `skills/`, `commands/`), so users do not download the full library source.
+
+Provides:
+- Skills: `cli-maker-scaffold`, `cli-maker-command-authoring`, `cli-maker-setup-config`
+- Commands: `/cli-maker:create`, `/cli-maker:add-command`, `/cli-maker:setup-config`
+
+Plugin sources live on `main` under [`plugin-meta/`](plugin-meta/), [`skills/`](skills/), and [`commands/`](commands/). The `plugin` branch is rebuilt by `.github/workflows/publish-plugin.yml` on every push that touches those paths. Do not commit to the `plugin` branch directly.
+
+Standalone skill install (without the plugin), copy any folder under `skills/` into `~/.claude/skills/`:
+
+```bash
+git clone --depth=1 --branch=plugin https://github.com/ideascoldigital/cli-maker /tmp/cli-maker-plugin
+cp -r /tmp/cli-maker-plugin/skills/* ~/.claude/skills/
+```
+
 ## Installation
 
 To install the library, use npm:
