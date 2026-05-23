@@ -43,9 +43,72 @@ export default myCommand;
   - `--param=value`
   - `--param value`
 - `ParamType.Boolean` expects explicit value: `--flag=true` or `--flag=false`.
-- `ParamType.List` requires `options` and value must be one of them.
+- `ParamType.List` requires `options` (or `optionsLoader`); value must be one of them.
 - `ParamType.Custom` must be JSON object or array.
 - Required params missing in non-interactive mode cause exit with error.
+
+## Advanced param features (v2.1.0+)
+
+All additive — adopt piecemeal, no breaking changes.
+
+### Dynamic / lazy options (`optionsLoader`)
+For lists whose options come from the filesystem, an API, or depend on previous answers.
+
+```ts
+{
+  name: 'menu',
+  type: ParamType.List,
+  required: true,
+  optionsLoader: (answers) => listMenusForProject(answers.projectRoot),
+}
+```
+
+- Resolved at prompt time (not module load).
+- Returning a Promise is fine.
+- Throw to abort with an error message.
+
+### Searchable / paginated picker
+Auto-enabled when option count > `pageSize * 2` (default >20). Force with `searchable: true`.
+
+```ts
+{
+  name: 'icon',
+  type: ParamType.List,
+  optionsLoader: () => CODICONS.map(c => c.name), // 200+ items
+  pageSize: 12,
+  optionLabel: (name) => `${name}  — ${categoryOf(name)}`,
+}
+```
+
+UX: type-to-filter, ↑/↓ navigate, PgUp/PgDn page, Home/End jump, Esc clear filter, Enter select, Ctrl+C cancel.
+`optionLabel` controls display only; the raw option reaches `action(args)`.
+
+### Conditional params (`when`)
+Skip prompts based on previous answers. Honored in interactive **and** flag modes — a `when`-false required param won't be flagged missing.
+
+```ts
+{
+  name: 'url',
+  type: ParamType.Url,
+  required: true,
+  when: (a) => a.kind === 'url',
+}
+```
+
+### Default values (`defaultValue`)
+Shown as `[default]` in the prompt; pressing Enter accepts it. Static or context-aware (sync or async).
+
+```ts
+{
+  name: 'label',
+  type: ParamType.Text,
+  required: true,
+  defaultValue: (a) => capitalize(a.target),
+}
+```
+
+## Param order matters
+Params are prompted in declaration order. Put params that feed `when` / `optionsLoader` / `defaultValue` of others **before** the dependents.
 
 ## Subcommands
 - Define subcommands inside `subcommands: Command[]`.

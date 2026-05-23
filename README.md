@@ -155,6 +155,65 @@ Available presets for `introAnimation.preset`:
 - `sonar` (ondas ◉◎)
 - `rainbow` (bordes y frames multicolor)
 
+## Advanced param features (v2.1.0+)
+
+All fields below are optional and additive. They work on both `Command` params and `SetupStep` (`SetupStep extends CommandParam`).
+
+### Dynamic / lazy options
+For lists whose contents come from the filesystem, an API, or depend on a previous answer.
+
+```ts
+{
+  name: 'menu',
+  type: ParamType.List,
+  required: true,
+  // Resolved at prompt time; receives previously collected answers
+  optionsLoader: (answers) => listMenusForProject(answers.projectRoot),
+}
+```
+
+### Searchable / paginated list picker
+Auto-enabled when option count exceeds `pageSize * 2` (default >20). Force with `searchable: true`.
+
+```ts
+{
+  name: 'icon',
+  type: ParamType.List,
+  optionsLoader: () => allCodicons(), // 200+ items
+  pageSize: 12,
+  optionLabel: (name) => `${name}  — ${categoryOf(name)}`,
+}
+```
+
+Keys: type-to-filter · ↑/↓ navigate · PgUp/PgDn page · Home/End jump · Esc clear filter · Enter select · Ctrl+C cancel.
+`optionLabel` is display-only; the raw option value is what reaches `action(args)`.
+
+### Conditional params (`when`)
+Skip a prompt based on previous answers. Honored in both interactive and flag modes — a `when`-false required param is not flagged missing.
+
+```ts
+{
+  name: 'url',
+  type: ParamType.Url,
+  required: true,
+  when: (a) => a.kind === 'url',
+}
+```
+
+### Default values (`defaultValue`)
+Shown as `[default]` in the prompt; pressing Enter accepts it. Static or context-aware (sync or async).
+
+```ts
+{
+  name: 'label',
+  type: ParamType.Text,
+  required: true,
+  defaultValue: (a) => capitalize(a.target),
+}
+```
+
+> **Param order matters:** params are prompted in declaration order. Put producers (params feeding `when` / `optionsLoader` / `defaultValue` of others) **before** their consumers.
+
 ## Setup command (step by step interactive)
 
 You can generate a setup command for global variables:

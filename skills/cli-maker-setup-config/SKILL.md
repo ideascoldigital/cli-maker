@@ -35,7 +35,8 @@ cli.setupCommand({
 ## Behavior details
 - Password values are stored encoded (`__b64`) or encrypted (`__enc`) depending on encryption config.
 - Existing values are reused as defaults in setup prompts.
-- List steps in setup are selected by numeric index.
+- List steps render with the standard list picker; lists >20 options auto-upgrade to the searchable/paginated picker.
+- `SetupStep extends CommandParam`, so all advanced param features (v2.1.0+) work in setup steps too: `optionsLoader(answers)`, `when(answers)`, `defaultValue: (answers) => v`, `searchable`, `pageSize`, `optionLabel`. See the `cli-maker-command-authoring` skill for details.
 
 ## Failure handling
 - Wrong passphrase: decrypted password fields may be unavailable.
