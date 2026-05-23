@@ -11,7 +11,11 @@
   "plugins": [
     {
       "name": "cli-maker",
-      "source": ".",
+      "source": {
+        "source": "github",
+        "repo": "ideascoldigital/cli-maker",
+        "branch": "plugin"
+      },
       "description": "Scaffold, extend, and configure CLIs built with @ideascol/cli-maker.",
       "version": "1.0.0",
       "category": "tooling",
