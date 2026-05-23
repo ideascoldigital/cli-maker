@@ -261,6 +261,42 @@ describe('Validator', () => {
         required: true,
         options: ["pera", "tomate", "banana"]
       },
+      {
+        description: "list invalid option with exactly 12 options shows all (no truncation)",
+        data: "missing",
+        type: ParamType.List,
+        expectedError: "\n ERROR  Invalid option: 'missing'\n       Available options: o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12\n",
+        expectedValue: undefined,
+        required: true,
+        options: ["o1","o2","o3","o4","o5","o6","o7","o8","o9","o10","o11","o12"]
+      },
+      {
+        description: "list invalid option with 13 options truncates preview with remainder count",
+        data: "missing",
+        type: ParamType.List,
+        expectedError: "\n ERROR  Invalid option: 'missing'\n       Available options: o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12, … (+1 more)\n",
+        expectedValue: undefined,
+        required: true,
+        options: ["o1","o2","o3","o4","o5","o6","o7","o8","o9","o10","o11","o12","o13"]
+      },
+      {
+        description: "list invalid option with 25 options truncates to first 12 plus remainder count",
+        data: "missing",
+        type: ParamType.List,
+        expectedError: "\n ERROR  Invalid option: 'missing'\n       Available options: o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12, … (+13 more)\n",
+        expectedValue: undefined,
+        required: true,
+        options: Array.from({ length: 25 }, (_, i) => `o${i + 1}`)
+      },
+      {
+        description: "list valid option in a large list still validates without error",
+        data: "o20",
+        type: ParamType.List,
+        expectedError: "",
+        expectedValue: "o20",
+        required: true,
+        options: Array.from({ length: 25 }, (_, i) => `o${i + 1}`)
+      },
 
     ];
 

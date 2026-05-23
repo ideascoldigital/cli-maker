@@ -52,8 +52,12 @@ export class Validator {
         }
         const foundValue = options?.filter(x => x === value)
         if (foundValue?.length === 0) {
+          const total = options?.length ?? 0;
+          const preview = total > 12
+            ? `${options!.slice(0, 12).join(', ')}, … (+${total - 12} more)`
+            : options?.join(', ');
           return {
-            error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Invalid option: '${Colors.Bright}${value}${Colors.Reset}${Colors.FgRed}'${Colors.Reset}\n${Colors.FgGray}       Available options: ${options?.join(', ')}${Colors.Reset}\n`,
+            error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Invalid option: '${Colors.Bright}${value}${Colors.Reset}${Colors.FgRed}'${Colors.Reset}\n${Colors.FgGray}       Available options: ${preview}${Colors.Reset}\n`,
             value: undefined
           }
         }

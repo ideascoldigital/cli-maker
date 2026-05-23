@@ -951,21 +951,44 @@ export class CLI {
         let answer: string;
         let validation: { error?: string; value?: any };
 
+        // Lazy-load options if a loader was provided and no options were set
+        if (param.type === ParamType.List && !param.options && (param as CommandParam).optionsLoader) {
+          try {
+            const loaded = await (param as CommandParam).optionsLoader!();
+            (param as CommandParam).options = loaded;
+          } catch (e: any) {
+            console.log(`${Colors.Error}Failed to load options for ${param.name}: ${e?.message ?? e}${Colors.Reset}`);
+          }
+        }
+
         // Show parameter header
         const requiredIndicator = param.required ? `${Colors.FgRed}*${Colors.Reset}` : `${Colors.FgGray}○${Colors.Reset}`;
         console.log(`${requiredIndicator} ${Colors.Bright}${param.name}${Colors.Reset} ${Colors.FgGray}(${param.type})${Colors.Reset}`);
         console.log(`  ${Colors.FgGray}${param.description}${Colors.Reset}`);
 
-        if (param.options && param.options.length > 0) {
-          console.log(`  ${Colors.FgGray}Options: ${param.options.join(', ')}${Colors.Reset}`);
+        const optsForHeader = param.options;
+        if (optsForHeader && optsForHeader.length > 0 && optsForHeader.length <= 12) {
+          console.log(`  ${Colors.FgGray}Options: ${optsForHeader.join(', ')}${Colors.Reset}`);
+        } else if (optsForHeader && optsForHeader.length > 12) {
+          console.log(`  ${Colors.FgGray}${optsForHeader.length} options available — type to search${Colors.Reset}`);
         }
         console.log('');
 
         if (param.type === ParamType.List && param.options) {
-          console.log(`${Colors.FgCyan}Use ↑/↓ arrow keys to navigate, Enter to select:${Colors.Reset}`);
-          answer = await this.promptWithArrows(param);
-          validation = { value: param.options[parseInt(answer, 10)] };
-          console.log(`${Colors.Success}✓ Selected: ${validation.value}${Colors.Reset}\n`);
+          const opts = param.options;
+          const pageSize = (param as CommandParam).pageSize ?? 10;
+          const isSearchable = (param as CommandParam).searchable === true || opts.length > pageSize * 2;
+          if (isSearchable) {
+            const selected = await this.promptSearchableList(param as CommandParam);
+            validation = { value: selected };
+            const label = ((param as CommandParam).optionLabel ?? String)(selected);
+            console.log(`${Colors.Success}✓ Selected: ${label}${Colors.Reset}\n`);
+          } else {
+            console.log(`${Colors.FgCyan}Use ↑/↓ arrow keys to navigate, Enter to select:${Colors.Reset}`);
+            answer = await this.promptWithArrows(param);
+            validation = { value: opts[parseInt(answer, 10)] };
+            console.log(`${Colors.Success}✓ Selected: ${validation.value}${Colors.Reset}\n`);
+          }
         } else {
           let attemptCount = 0;
           do {
@@ -1074,6 +1097,136 @@ export class CLI {
         renderOptions();
     });
 }
+
+  /**
+   * Searchable + paginated list picker. Type to filter, ↑/↓ to move,
+   * PageUp/PageDown jump a page, Home/End jump to ends, Esc clears filter,
+   * Enter selects, Ctrl+C cancels.
+   */
+  private async promptSearchableList(param: CommandParam): Promise<any> {
+    const options = param.options!;
+    const pageSize = param.pageSize ?? 10;
+    const labelFn: (o: any) => string = param.optionLabel ?? ((o) => String(o));
+
+    return new Promise(resolve => {
+      let filter = '';
+      let cursor = 0; // index into filtered list
+      let scrollTop = 0;
+
+      const getFiltered = () => {
+        if (!filter) return options.map((opt, i) => ({ opt, i }));
+        const q = filter.toLowerCase();
+        return options
+          .map((opt, i) => ({ opt, i }))
+          .filter(({ opt }) => labelFn(opt).toLowerCase().includes(q));
+      };
+
+      const render = () => {
+        const filtered = getFiltered();
+        if (cursor >= filtered.length) cursor = Math.max(0, filtered.length - 1);
+        if (cursor < scrollTop) scrollTop = cursor;
+        if (cursor >= scrollTop + pageSize) scrollTop = cursor - pageSize + 1;
+
+        console.clear();
+        console.log(
+          `${Colors.BgBlue}${Colors.FgWhite} SELECT ${Colors.Reset} ` +
+          `${Colors.FgBlue}${param.name}${Colors.Reset} ` +
+          `${Colors.FgGray}(${filtered.length}/${options.length})${Colors.Reset}`
+        );
+        console.log(`${Colors.FgGray}Filter:${Colors.Reset} ${Colors.FgCyan}${filter || '(type to search)'}${Colors.Reset}\n`);
+
+        if (filtered.length === 0) {
+          console.log(`  ${Colors.FgYellow}No matches${Colors.Reset}`);
+        } else {
+          const slice = filtered.slice(scrollTop, scrollTop + pageSize);
+          slice.forEach((entry, i) => {
+            const realIdx = scrollTop + i;
+            const isActive = realIdx === cursor;
+            const label = labelFn(entry.opt);
+            if (isActive) {
+              console.log(`${Colors.FgGreen}❯ ${label}${Colors.Reset}`);
+            } else {
+              console.log(`  ${label}`);
+            }
+          });
+          if (scrollTop + pageSize < filtered.length) {
+            console.log(`${Colors.FgGray}  … ${filtered.length - (scrollTop + pageSize)} more below${Colors.Reset}`);
+          }
+        }
+
+        console.log(`\n${Colors.FgGray}Type to filter · ↑/↓ move · PgUp/PgDn page · Enter select · Esc clear · Ctrl+C cancel${Colors.Reset}`);
+      };
+
+      const cleanup = () => {
+        process.stdin.removeListener('keypress', handler);
+        if (process.stdin.isTTY) process.stdin.setRawMode(false);
+      };
+
+      const finish = (value: any) => {
+        cleanup();
+        process.stdout.write('\x1B[0J');
+        process.stdout.write('\x1B[0;0H');
+        resolve(value);
+      };
+
+      const handler = (str: string, key: readline.Key) => {
+        if (key.ctrl && key.name === 'c') {
+          cleanup();
+          console.log(`${Colors.Warning}⚠️  Selection cancelled${Colors.Reset}\n`);
+          process.exit(0);
+        }
+        if (key.name === 'return') {
+          const filtered = getFiltered();
+          if (filtered.length === 0) return;
+          finish(filtered[cursor].opt);
+          return;
+        }
+        if (key.name === 'escape') {
+          filter = ''; cursor = 0; scrollTop = 0; render(); return;
+        }
+        if (key.name === 'up') {
+          const filtered = getFiltered();
+          cursor = cursor > 0 ? cursor - 1 : Math.max(0, filtered.length - 1);
+          render(); return;
+        }
+        if (key.name === 'down') {
+          const filtered = getFiltered();
+          cursor = filtered.length === 0 ? 0 : (cursor + 1) % filtered.length;
+          render(); return;
+        }
+        if (key.name === 'pageup') {
+          cursor = Math.max(0, cursor - pageSize); render(); return;
+        }
+        if (key.name === 'pagedown') {
+          const filtered = getFiltered();
+          cursor = Math.min(filtered.length - 1, cursor + pageSize); render(); return;
+        }
+        if (key.name === 'home') { cursor = 0; render(); return; }
+        if (key.name === 'end') {
+          const filtered = getFiltered();
+          cursor = Math.max(0, filtered.length - 1); render(); return;
+        }
+        if (key.name === 'backspace') {
+          if (filter.length > 0) {
+            filter = filter.slice(0, -1);
+            cursor = 0; scrollTop = 0;
+            render();
+          }
+          return;
+        }
+        if (str && str.length === 1 && str >= ' ' && str <= '~') {
+          filter += str;
+          cursor = 0; scrollTop = 0;
+          render();
+        }
+      };
+
+      readline.emitKeypressEvents(process.stdin);
+      if (process.stdin.isTTY) process.stdin.setRawMode(true);
+      process.stdin.on('keypress', handler);
+      render();
+    });
+  }
 
   /**
    * Static method to prompt for visible input.

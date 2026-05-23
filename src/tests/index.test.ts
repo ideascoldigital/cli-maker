@@ -523,4 +523,93 @@ describe("CLI", () => {
       assert.equal(capturedArgs.flag, true);
     });
   });
+
+  describe("List param extended fields", () => {
+    test("should accept and preserve optionsLoader, searchable, pageSize, optionLabel", () => {
+      const cli = new CLI("Test CLI", "A test CLI");
+      const loader = async () => ["a", "b", "c"];
+      const label = (o: any) => `Label:${o}`;
+
+      const command: Command = {
+        name: "pick",
+        description: "Pick something",
+        params: [
+          {
+            name: "item",
+            description: "An item",
+            required: true,
+            type: ParamType.List,
+            optionsLoader: loader,
+            searchable: true,
+            pageSize: 5,
+            optionLabel: label,
+          },
+        ],
+        action: () => {},
+      };
+
+      cli.command(command);
+      const stored = cli.getCommands().find(c => c.name === "pick")!;
+      const p: any = stored.params[0];
+
+      assert.equal(p.optionsLoader, loader);
+      assert.equal(p.searchable, true);
+      assert.equal(p.pageSize, 5);
+      assert.equal(p.optionLabel, label);
+      assert.equal(p.optionLabel("X"), "Label:X");
+    });
+
+    test("optionsLoader resolves to an array of options", async () => {
+      const loader = async () => Array.from({ length: 30 }, (_, i) => `opt${i}`);
+      const command: Command = {
+        name: "big",
+        description: "big list",
+        params: [
+          {
+            name: "v",
+            description: "v",
+            required: true,
+            type: ParamType.List,
+            optionsLoader: loader,
+          },
+        ],
+        action: () => {},
+      };
+
+      const cli = new CLI("Test CLI", "x");
+      cli.command(command);
+
+      const p: any = cli.getCommands().find(c => c.name === "big")!.params[0];
+      const loaded = await p.optionsLoader();
+      assert.equal(Array.isArray(loaded), true);
+      assert.equal(loaded.length, 30);
+      assert.equal(loaded[0], "opt0");
+      assert.equal(loaded[29], "opt29");
+    });
+
+    test("synchronous optionsLoader is also supported", async () => {
+      const loader = () => ["x", "y"];
+      const command: Command = {
+        name: "sync",
+        description: "sync loader",
+        params: [
+          {
+            name: "v",
+            description: "v",
+            required: true,
+            type: ParamType.List,
+            optionsLoader: loader,
+          },
+        ],
+        action: () => {},
+      };
+
+      const cli = new CLI("Test CLI", "x");
+      cli.command(command);
+
+      const p: any = cli.getCommands().find(c => c.name === "sync")!.params[0];
+      const loaded = await p.optionsLoader();
+      assert.deepEqual(loaded, ["x", "y"]);
+    });
+  });
 });

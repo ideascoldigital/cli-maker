@@ -17,6 +17,28 @@ export interface CommandParam {
   type?: ParamType;
   required?: boolean;
   options?: any[];
+  /**
+   * Lazy loader for List options. Resolved at prompt time so huge lists
+   * are only materialized when the user actually needs to pick one.
+   * Ignored when `options` is already set.
+   */
+  optionsLoader?: () => any[] | Promise<any[]>;
+  /**
+   * Force the searchable picker (type-to-filter + pagination).
+   * Auto-enabled when option count exceeds `pageSize * 2` (default >20).
+   */
+  searchable?: boolean;
+  /**
+   * Number of rows shown at once in the interactive list picker.
+   * Default: 10.
+   */
+  pageSize?: number;
+  /**
+   * Custom display label for each option. Receives the raw option value,
+   * returns the string shown in the picker. Defaults to `String(opt)`.
+   * The selected value passed to the action remains the raw option.
+   */
+  optionLabel?: (option: any) => string;
 }
 
 export interface Command {
