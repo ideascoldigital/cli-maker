@@ -20,9 +20,22 @@ export interface CommandParam {
   /**
    * Lazy loader for List options. Resolved at prompt time so huge lists
    * are only materialized when the user actually needs to pick one.
+   * Receives previously collected answers so options can depend on prior params.
    * Ignored when `options` is already set.
    */
-  optionsLoader?: () => any[] | Promise<any[]>;
+  optionsLoader?: (answers: Record<string, any>) => any[] | Promise<any[]>;
+  /**
+   * Conditional visibility. If provided and returns false, the param is
+   * skipped in interactive mode (no prompt, value left undefined).
+   * Receives previously collected answers.
+   */
+  when?: (answers: Record<string, any>) => boolean;
+  /**
+   * Default value used when the user presses Enter without typing.
+   * Either a static value or a function (sync/async) that receives
+   * previously collected answers.
+   */
+  defaultValue?: any | ((answers: Record<string, any>) => any | Promise<any>);
   /**
    * Force the searchable picker (type-to-filter + pagination).
    * Auto-enabled when option count exceeds `pageSize * 2` (default >20).

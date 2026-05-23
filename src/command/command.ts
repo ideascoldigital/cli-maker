@@ -611,7 +611,15 @@ export class CLI {
   }
 
   private getMissingParams(command: Command, result: any) {
-    const requiredParams = command.params.filter(p => p.required === true);
+    const requiredParams = command.params.filter(p => {
+      if (p.required !== true) return false;
+      // Honor when() so conditionally-hidden params aren't flagged missing
+      if (typeof (p as CommandParam).when === 'function') {
+        try { return (p as CommandParam).when!(result); }
+        catch { return true; }
+      }
+      return true;
+    });
     return requiredParams.filter(p => result[p.name] === undefined);
   }
 
@@ -950,12 +958,36 @@ export class CLI {
       return promise.then(async answers => {
         let answer: string;
         let validation: { error?: string; value?: any };
+        const p = param as CommandParam;
+
+        // Conditional visibility: skip param when when() returns false
+        if (typeof p.when === 'function') {
+          try {
+            if (!p.when(answers)) {
+              return { ...answers, [param.name]: undefined };
+            }
+          } catch (e: any) {
+            console.log(`${Colors.Error}when() failed for ${param.name}: ${e?.message ?? e}${Colors.Reset}`);
+          }
+        }
+
+        // Resolve default value (static or context-aware function)
+        let resolvedDefault: any = undefined;
+        if (p.defaultValue !== undefined) {
+          try {
+            resolvedDefault = typeof p.defaultValue === 'function'
+              ? await p.defaultValue(answers)
+              : p.defaultValue;
+          } catch (e: any) {
+            console.log(`${Colors.Error}defaultValue() failed for ${param.name}: ${e?.message ?? e}${Colors.Reset}`);
+          }
+        }
 
         // Lazy-load options if a loader was provided and no options were set
-        if (param.type === ParamType.List && !param.options && (param as CommandParam).optionsLoader) {
+        if (param.type === ParamType.List && !param.options && p.optionsLoader) {
           try {
-            const loaded = await (param as CommandParam).optionsLoader!();
-            (param as CommandParam).options = loaded;
+            const loaded = await p.optionsLoader(answers);
+            p.options = loaded;
           } catch (e: any) {
             console.log(`${Colors.Error}Failed to load options for ${param.name}: ${e?.message ?? e}${Colors.Reset}`);
           }
@@ -972,16 +1004,19 @@ export class CLI {
         } else if (optsForHeader && optsForHeader.length > 12) {
           console.log(`  ${Colors.FgGray}${optsForHeader.length} options available — type to search${Colors.Reset}`);
         }
+        if (resolvedDefault !== undefined && resolvedDefault !== '') {
+          console.log(`  ${Colors.FgGray}Default: ${Colors.FgCyan}${resolvedDefault}${Colors.Reset}`);
+        }
         console.log('');
 
         if (param.type === ParamType.List && param.options) {
           const opts = param.options;
-          const pageSize = (param as CommandParam).pageSize ?? 10;
-          const isSearchable = (param as CommandParam).searchable === true || opts.length > pageSize * 2;
+          const pageSize = p.pageSize ?? 10;
+          const isSearchable = p.searchable === true || opts.length > pageSize * 2;
           if (isSearchable) {
-            const selected = await this.promptSearchableList(param as CommandParam);
+            const selected = await this.promptSearchableList(p);
             validation = { value: selected };
-            const label = ((param as CommandParam).optionLabel ?? String)(selected);
+            const label = (p.optionLabel ?? String)(selected);
             console.log(`${Colors.Success}✓ Selected: ${label}${Colors.Reset}\n`);
           } else {
             console.log(`${Colors.FgCyan}Use ↑/↓ arrow keys to navigate, Enter to select:${Colors.Reset}`);
@@ -996,9 +1031,12 @@ export class CLI {
               console.log(`${Colors.FgYellow}Please try again:${Colors.Reset}`);
             }
 
-            const promptText = param.required
-              ? `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(required)${Colors.Reset}: `
-              : `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(or press Enter to skip)${Colors.Reset}: `;
+            const hasDefault = resolvedDefault !== undefined && resolvedDefault !== '';
+            const promptText = hasDefault
+              ? `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}[${resolvedDefault}]${Colors.Reset}: `
+              : (param.required
+                ? `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(required)${Colors.Reset}: `
+                : `${Colors.FgGreen}Enter value${Colors.Reset} ${Colors.FgGray}(or press Enter to skip)${Colors.Reset}: `);
 
             // Use hidden input for Password type
             if (param.type === ParamType.Password) {
@@ -1012,7 +1050,12 @@ export class CLI {
             } else {
               answer = await askQuestion(promptText);
             }
-            
+
+            // Apply default when user submitted nothing
+            if ((answer === undefined || answer === '') && hasDefault) {
+              answer = String(resolvedDefault);
+            }
+
             validation = this.validateParam(answer, param.type, param.required, param.options);
 
             if (validation.error) {
