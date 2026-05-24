@@ -1,0 +1,27 @@
+{
+  "name": "ideascoldigital",
+  "owner": {
+    "name": "Ideascol Digital",
+    "url": "https://github.com/ideascoldigital"
+  },
+  "metadata": {
+    "description": "Ideascol Digital plugins for Claude Code.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "cli-maker",
+      "source": {
+        "source": "github",
+        "repo": "ideascoldigital/cli-maker",
+        "branch": "plugin"
+      },
+      "description": "Scaffold, extend, and configure CLIs built with @ideascol/cli-maker.",
+      "version": "1.0.0",
+      "category": "tooling",
+      "tags": ["cli", "scaffold", "generator"],
+      "homepage": "https://github.com/ideascoldigital/cli-maker",
+      "license": "MIT"
+    }
+  ]
+}

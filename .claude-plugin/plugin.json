@@ -1,0 +1,19 @@
+{
+  "name": "cli-maker",
+  "version": "1.0.0",
+  "description": "Skills and commands to scaffold, extend, and configure CLIs built with @ideascol/cli-maker.",
+  "author": {
+    "name": "Ideascol Digital",
+    "url": "https://github.com/ideascoldigital"
+  },
+  "homepage": "https://github.com/ideascoldigital/cli-maker",
+  "repository": "https://github.com/ideascoldigital/cli-maker",
+  "license": "MIT",
+  "keywords": [
+    "cli",
+    "scaffold",
+    "generator",
+    "ideascol",
+    "cli-maker"
+  ]
+}
