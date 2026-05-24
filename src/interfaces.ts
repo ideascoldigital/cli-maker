@@ -126,6 +126,22 @@ export interface CLIOptions {
   version?: string;
   branding?: boolean;
   introAnimation?: IntroAnimationOptions;
+  /**
+   * Toggle built-in default commands auto-registered by the CLI.
+   * Each flag defaults to true (command shown). Set to false to hide it.
+   */
+  defaultCommands?: DefaultCommandsOptions;
+}
+
+export interface DefaultCommandsOptions {
+  /**
+   * Show the built-in `rotate-passphrase` command. Default: true.
+   */
+  rotatePassphrase?: boolean;
+  /**
+   * Show the built-in `ai-guide` command (machine-readable CLI spec). Default: true.
+   */
+  aiGuide?: boolean;
 }
 
 export interface SetupStep extends CommandParam {

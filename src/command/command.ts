@@ -9,6 +9,7 @@ import { Validator, ValidatorResult } from './validator';
 import { formatParameterTable, stripAnsiCodes } from '../common';
 import { createSetupCommand, getRawConfig as getRawConfigUtil, loadSetupConfig as loadSetupConfigUtil, hiddenPrompt } from '../setup';
 import { createRotatePassphraseCommand } from '../rotate-passphrase';
+import { createAiGuideCommand } from '../ai-guide';
 
 function generatePixelAsciiArt(text: string): string[] {
   const font: Record<string, string[]> = {
@@ -192,8 +193,20 @@ export class CLI {
       this.executableName = this.name;
     }
 
-    // Add default rotate-passphrase command
-    this.commands.push(createRotatePassphraseCommand(this.name));
+    // Add default commands (each can be hidden via options.defaultCommands)
+    const defaults = this.options?.defaultCommands ?? {};
+    if (defaults.rotatePassphrase !== false) {
+      this.commands.push(createRotatePassphraseCommand(this.name));
+    }
+    if (defaults.aiGuide !== false) {
+      this.commands.push(createAiGuideCommand({
+        name: this.name,
+        description: this.description,
+        executableName: this.executableName,
+        version: this.options?.version,
+        getCommands: () => this.commands,
+      }));
+    }
   }
 
   private getBinName(): string | null {

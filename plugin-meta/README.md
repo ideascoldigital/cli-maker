@@ -9,7 +9,7 @@ Install:
 
 Includes:
 
-- Skills: `cli-maker-scaffold`, `cli-maker-command-authoring`, `cli-maker-setup-config`
+- Skills: `cli-maker-scaffold`, `cli-maker-command-authoring`, `cli-maker-setup-config`, `cli-maker-ai-guide`
 - Commands: `/cli-maker:create`, `/cli-maker:add-command`, `/cli-maker:setup-config`
 
 Source: https://github.com/ideascoldigital/cli-maker (branch `main`).

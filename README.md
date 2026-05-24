@@ -22,7 +22,7 @@ Install the bundled skills and slash commands inside Claude Code:
 The `@plugin` ref points at a slim auto-generated branch (only `.claude-plugin/`, `skills/`, `commands/`), so users do not download the full library source.
 
 Provides:
-- Skills: `cli-maker-scaffold`, `cli-maker-command-authoring`, `cli-maker-setup-config`
+- Skills: `cli-maker-scaffold`, `cli-maker-command-authoring`, `cli-maker-setup-config`, `cli-maker-ai-guide`
 - Commands: `/cli-maker:create`, `/cli-maker:add-command`, `/cli-maker:setup-config`
 
 Plugin sources live on `main` under [`plugin-meta/`](plugin-meta/), [`skills/`](skills/), and [`commands/`](commands/). The `plugin` branch is rebuilt by `.github/workflows/publish-plugin.yml` on every push that touches those paths. Do not commit to the `plugin` branch directly.
@@ -213,6 +213,35 @@ Shown as `[default]` in the prompt; pressing Enter accepts it. Static or context
 ```
 
 > **Param order matters:** params are prompted in declaration order. Put producers (params feeding `when` / `optionsLoader` / `defaultValue` of others) **before** their consumers.
+
+## Built-in default commands
+
+Every CLI created with cli-maker auto-registers two commands. Hide either via `defaultCommands`:
+
+```ts
+new CLI('mycli', 'Demo', {
+  version: '1.0.0',
+  defaultCommands: {
+    rotatePassphrase: false, // hide rotate-passphrase
+    aiGuide: false,          // hide ai-guide
+  },
+});
+```
+
+### `rotate-passphrase`
+Rotates the passphrase used to encrypt setup config values. Flags: `--config-file`, `--create-backup`, `--secure-delete-backup`.
+
+### `ai-guide`
+Prints a machine-readable spec of every command in the CLI (including itself + `rotate-passphrase` + your commands). Intended so an AI agent can run it once and know how to invoke the CLI end-to-end.
+
+```bash
+mycli ai-guide                       # JSON, pretty
+mycli ai-guide --format markdown     # human/AI-friendly markdown
+mycli ai-guide --command deploy      # spec for one top-level command
+mycli ai-guide --pretty false        # compact JSON
+```
+
+Output covers: CLI metadata, global flags (`--help`, `--version`, `--intro-always`, `--no-intro`), flag formats, param-type semantics, every command with usage string, params (flag, type, required, options/loader/when/default/searchable), and subcommands.
 
 ## Setup command (step by step interactive)
 

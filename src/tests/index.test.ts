@@ -10,8 +10,9 @@ describe("CLI", () => {
 
     assert.equal(cli.getName(), "Demo CLI");
     assert.equal(cli.getDescription(), "A simple CLI to demonstrate the CLI library");
-    assert.equal(cli.getCommands().length, 1); // Now includes rotate-passphrase by default
-    assert.equal(cli.getCommands()[0].name, "rotate-passphrase"); // Verify it's the rotate-passphrase command
+    assert.equal(cli.getCommands().length, 2); // rotate-passphrase + ai-guide defaults
+    assert.equal(cli.getCommands()[0].name, "rotate-passphrase");
+    assert.equal(cli.getCommands()[1].name, "ai-guide");
     assert.equal(cli.getOptions()?.interactive, true);
     assert.equal(cli.getOptions()?.version, "1.0.0");
   });
@@ -49,7 +50,7 @@ describe("CLI", () => {
 
     const testCommand = cli.getCommands().find(cmd => cmd.name === "test");
 
-    assert.equal(cli.getCommands().length, 2); // rotate-passphrase + test command
+    assert.equal(cli.getCommands().length, 3); // rotate-passphrase + ai-guide + test command
     assert.equal(testCommand!.params.length, 2);
     assert.equal(testCommand!.params[0].required, true);
     assert.equal(testCommand!.params[1].required, false);
@@ -126,7 +127,7 @@ describe("CLI", () => {
         console.log = originalLog;
       }
 
-      assert.equal(cli.getCommands().length, 2); // rotate-passphrase + test command
+      assert.equal(cli.getCommands().length, 3); // rotate-passphrase + ai-guide + test command
     });
 
     test("should support params without = like --param1 value1", () => {
@@ -138,7 +139,7 @@ describe("CLI", () => {
       try {
         cli.parse(argv);
         // If we reach here, the parsing was successful
-        assert.equal(cli.getCommands().length, 2); // rotate-passphrase + test command
+        assert.equal(cli.getCommands().length, 3); // rotate-passphrase + ai-guide + test command
       } catch (error) {
         assert.fail("Expected cli.parse to not throw an error");
       }
@@ -198,7 +199,7 @@ describe("CLI", () => {
         console.log = originalLog;
       }
 
-      assert.equal(cli.getCommands().length, 2); // rotate-passphrase + project command
+      assert.equal(cli.getCommands().length, 3); // rotate-passphrase + ai-guide + project command
       const projectCommand = cli.getCommands().find(cmd => cmd.name === "project");
       assert.equal(projectCommand!.subcommands?.length, 2);
     });

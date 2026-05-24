@@ -45,6 +45,11 @@ npx @ideascol/cli-maker create \
   - npm project: `npm run build`
   - bun project: `bun run build`
 
+5. Confirm built-in defaults present (auto-registered by `new CLI(...)`):
+- `<cli> rotate-passphrase --help` — rotates encryption passphrase for setup config.
+- `<cli> ai-guide` — prints machine-readable spec of the CLI (see `cli-maker-ai-guide` skill).
+- Hide either via `CLIOptions.defaultCommands.rotatePassphrase` / `aiGuide` set to `false`.
+
 ## Hard validation rules
 - `name` must match `@company/package-name`.
 - `email` must be valid format.

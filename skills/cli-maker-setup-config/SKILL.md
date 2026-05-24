@@ -43,8 +43,21 @@ cli.setupCommand({
 - Missing setup steps in code: `getConfigValue` falls back to raw config read.
 - Invalid typed input (email/url/boolean/list): re-prompt until valid during setup.
 
+## Built-in `rotate-passphrase` command
+Auto-registered by `new CLI(...)`. Re-encrypts every `__enc` field in the setup config under a new passphrase.
+
+```bash
+<cli> rotate-passphrase                          # default: no backup (secure)
+<cli> rotate-passphrase --create-backup          # keep <config>.backup.<ts>
+<cli> rotate-passphrase --create-backup --secure-delete-backup
+<cli> rotate-passphrase --config-file=alt.json   # rotate a non-default config
+```
+
+Hide it via `CLIOptions.defaultCommands.rotatePassphrase: false` when the host CLI ships its own rotation flow.
+
 ## Verification checklist
 1. `setup` command appears in help.
 2. Running `setup` writes config file.
 3. Command consuming a non-password key works without passphrase.
 4. Command consuming password key requests passphrase or works with provided passphrase.
+5. `<cli> ai-guide --command setup` lists every step as a param with correct `type`/`required`/`options`. Same for `rotate-passphrase`. See `cli-maker-ai-guide` skill.

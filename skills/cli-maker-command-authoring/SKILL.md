@@ -120,4 +120,17 @@ Params are prompted in declaration order. Put params that feed `when` / `options
 ## Post-edit checks
 1. Build/tests pass (`npm test` or `bun test`).
 2. `--help` output includes the new command.
-3. Run at least one valid invocation and one invalid invocation to validate errors.
+3. `<cli> ai-guide --command <new-name>` returns the new command with the expected `params[]` (flag, type, required, options, hasWhen, defaultValue, searchable). Use this as the canonical contract test — see `cli-maker-ai-guide` skill.
+4. Run at least one valid invocation and one invalid invocation to validate errors.
+
+## Built-in default commands
+`new CLI(...)` auto-registers two commands: `rotate-passphrase` and `ai-guide`. Both appear in `--help` unless hidden:
+
+```ts
+new CLI('mycli', 'Demo', {
+  version: '1.0.0',
+  defaultCommands: { rotatePassphrase: false, aiGuide: false },
+});
+```
+
+Do not redefine commands named `rotate-passphrase` or `ai-guide` unless you first hide the corresponding default — duplicate names cause unpredictable lookup.
