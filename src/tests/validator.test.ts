@@ -303,6 +303,44 @@ describe('Validator', () => {
     runCases(cases, validator);
   })
 
+  describe('Array validations', () => {
+    const cases: any = [
+      {
+        description: "Array parses valid JSON array of objects",
+        data: '[{"label":"a"},{"label":"b"}]',
+        type: ParamType.Array,
+        expectedError: "",
+        expectedValue: [{ label: 'a' }, { label: 'b' }],
+        required: true,
+      },
+      {
+        description: "Array parses valid JSON array of strings",
+        data: '["x","y","z"]',
+        type: ParamType.Array,
+        expectedError: "",
+        expectedValue: ['x', 'y', 'z'],
+        required: true,
+      },
+      {
+        description: "Array rejects non-array JSON (object)",
+        data: '{"k":"v"}',
+        type: ParamType.Array,
+        expectedError: "\n ERROR  Array parameter expected JSON array, got: '{\"k\":\"v\"}'\n",
+        expectedValue: undefined,
+        required: true,
+      },
+      {
+        description: "Array rejects malformed JSON",
+        data: '[not json]',
+        type: ParamType.Array,
+        expectedError: "\n ERROR  Invalid JSON for array param: '[not json]'\n       Expected: JSON array (e.g., [{\"k\":\"v\"}])\n",
+        expectedValue: undefined,
+        required: true,
+      },
+    ];
+    runCases(cases, validator);
+  })
+
   describe('package validations', () => {
     const cases: any = [
       {
@@ -365,7 +403,11 @@ function executeTest(caseTest: any, validator: Validator) {
     const actualError = stripAnsiCodes(result.error || "");
 
     assert.equal(actualError, caseTest.expectedError, "Error message");
-    assert.equal(result.value, caseTest.expectedValue, "Value message");
+    if (caseTest.expectedValue !== null && typeof caseTest.expectedValue === 'object') {
+      assert.deepEqual(result.value, caseTest.expectedValue, "Value message");
+    } else {
+      assert.equal(result.value, caseTest.expectedValue, "Value message");
+    }
   });
 }
 

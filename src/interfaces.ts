@@ -9,6 +9,8 @@ export enum ParamType {
   Url = 'url',
   Package = "Package",
   Password = "password",
+  /** Repeated entries. Each item is itself a set of params (see CommandParam.itemParams). */
+  Array = 'array',
 }
 
 export interface CommandParam {
@@ -52,6 +54,19 @@ export interface CommandParam {
    * The selected value passed to the action remains the raw option.
    */
   optionLabel?: (option: any) => string;
+  /**
+   * For `ParamType.Array` only — the params asked for each item in the loop.
+   * Each item's answers form a sub-object pushed onto the result array.
+   * Supports the same advanced features (when/optionsLoader/defaultValue)
+   * but `answers` inside an item only sees fields of THAT item.
+   */
+  itemParams?: CommandParam[];
+  /** Minimum number of items required (default: 0). */
+  minItems?: number;
+  /** Maximum number of items allowed (default: unlimited). */
+  maxItems?: number;
+  /** Custom render of each accepted item in the prompt loop. */
+  itemLabel?: (item: any, index: number) => string;
 }
 
 export interface Command {

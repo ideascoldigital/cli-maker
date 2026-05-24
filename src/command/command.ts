@@ -1022,7 +1022,13 @@ export class CLI {
         }
         console.log('');
 
-        if (param.type === ParamType.List && param.options) {
+        if (param.type === ParamType.Array) {
+          rl.close();
+          const arr = await this.promptArray(p, answers);
+          rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+          validation = { value: arr };
+          console.log(`${Colors.Success}✓ Collected ${arr.length} item(s)${Colors.Reset}\n`);
+        } else if (param.type === ParamType.List && param.options) {
           const opts = param.options;
           const pageSize = p.pageSize ?? 10;
           const isSearchable = p.searchable === true || opts.length > pageSize * 2;
@@ -1153,6 +1159,57 @@ export class CLI {
         renderOptions();
     });
 }
+
+  /**
+   * Interactive array builder. Loops over itemParams, asking "add another?" between iterations.
+   * Each item is a sub-prompt context (its own answers scope).
+   */
+  private async promptArray(param: CommandParam, parentAnswers: Record<string, any>): Promise<any[]> {
+    const items: any[] = [];
+    const itemParams = param.itemParams ?? [];
+    const minItems = param.minItems ?? 0;
+    const maxItems = param.maxItems ?? Number.POSITIVE_INFINITY;
+    const labelFn = param.itemLabel ?? ((it: any, i: number) =>
+      typeof it === 'object' && it !== null && 'label' in it ? String((it as any).label) : `item ${i + 1}`);
+
+    const askYesNo = async (question: string, defaultYes: boolean): Promise<boolean> => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const hint = defaultYes ? '(Y/n)' : '(y/N)';
+      const ans: string = await new Promise(resolve => rl.question(`${question} ${Colors.FgGray}${hint}${Colors.Reset} `, resolve));
+      rl.close();
+      const t = ans.trim().toLowerCase();
+      if (!t) return defaultYes;
+      return t.startsWith('y');
+    };
+
+    while (items.length < maxItems) {
+      const needMore = items.length < minItems;
+      const prompt = items.length === 0
+        ? `${Colors.FgCyan}Add first ${param.name} item?${Colors.Reset}`
+        : `${Colors.FgCyan}Add another ${param.name} item?${Colors.Reset}`;
+      const shouldAdd = needMore ? true : await askYesNo(prompt, items.length === 0);
+      if (!shouldAdd) break;
+
+      console.log(`\n${Colors.FgBlue}── Item ${items.length + 1} ──${Colors.Reset}`);
+      if (itemParams.length === 0) {
+        // No itemParams: prompt single text value
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        const v: string = await new Promise(r => rl.question(`${Colors.FgGreen}value${Colors.Reset}: `, r));
+        rl.close();
+        if (v.trim()) items.push(v.trim());
+      } else {
+        const itemAnswers = await this.promptForMissingParams(itemParams as any, { __parent: parentAnswers });
+        delete (itemAnswers as any).__parent;
+        items.push(itemAnswers);
+      }
+      console.log(`${Colors.Success}✓ ${labelFn(items[items.length - 1], items.length - 1)} added${Colors.Reset}\n`);
+    }
+
+    if (items.length < minItems) {
+      console.log(`${Colors.Warning}⚠ Only ${items.length}/${minItems} required item(s) provided${Colors.Reset}`);
+    }
+    return items;
+  }
 
   /**
    * Searchable + paginated list picker. Type to filter, ↑/↓ to move,

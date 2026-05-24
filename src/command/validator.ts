@@ -91,6 +91,21 @@ export class Validator {
           };
         }
         return { value };
+      case ParamType.Array: {
+        try {
+          const arr = JSON.parse(value);
+          if (!Array.isArray(arr)) {
+            return {
+              error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Array parameter expected JSON array, got: '${Colors.Bright}${value}${Colors.Reset}${Colors.FgRed}'${Colors.Reset}\n`,
+            };
+          }
+          return { value: arr };
+        } catch {
+          return {
+            error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Invalid JSON for array param: '${Colors.Bright}${value}${Colors.Reset}${Colors.FgRed}'${Colors.Reset}\n${Colors.FgGray}       Expected: JSON array (e.g., [{"k":"v"}])${Colors.Reset}\n`,
+          };
+        }
+      }
       case ParamType.Password:
         if (this.checkEmpty(value) && isRequired) {
           return {
