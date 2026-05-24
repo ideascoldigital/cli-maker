@@ -7,7 +7,7 @@ export interface ValidatorResult {
 }
 
 export class Validator {
-  public validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[], paramName?: string): ValidatorResult {
+  public validateParam(value: string | undefined, type?: ParamType, isRequired?: boolean, options?: any[], paramName?: string, hasOptionsLoader?: boolean): ValidatorResult {
     if (this.checkEmpty(value) && isRequired) {
       return {
         error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}Missing required parameter${paramName ? `: ${Colors.Bright}${paramName}${Colors.Reset}${Colors.FgRed}` : ''}${Colors.Reset}\n`
@@ -45,6 +45,10 @@ export class Validator {
         }
       case ParamType.List: {
         if (options === undefined || options?.length === 0) {
+          // When an optionsLoader exists, options are materialized lazily at
+          // prompt time. Accept the value as-is in flag mode; the action is
+          // responsible for any further validation.
+          if (hasOptionsLoader) return { value };
           return {
             error: `\n${Colors.BgRed}${Colors.FgWhite} ERROR ${Colors.Reset} ${Colors.FgRed}List parameter has no options configured${Colors.Reset}\n`,
             value: undefined

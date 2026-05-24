@@ -677,7 +677,14 @@ export class CLI {
         const paramName = key.slice(2);
         const commandParam = command.params.find(p => p.name === paramName);
         if (commandParam) {
-          const validation = this.validateParam(value, commandParam.type, commandParam.required, commandParam.options, paramName);
+          const validation = this.validator.validateParam(
+            value,
+            commandParam.type,
+            commandParam.required,
+            commandParam.options,
+            paramName,
+            !!(commandParam as CommandParam).optionsLoader,
+          );
           if (validation.error) {
             return { error: validation.error };
           }
