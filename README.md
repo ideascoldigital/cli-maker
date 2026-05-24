@@ -212,6 +212,47 @@ Shown as `[default]` in the prompt; pressing Enter accepts it. Static or context
 }
 ```
 
+### Array of items (`ParamType.Array`, v2.2.0+)
+For repeated entries (menu items, allowed hosts, tags…). Each item is a sub-prompt with its own `itemParams`. Interactive mode runs an "add another?" loop; flag mode accepts a JSON array.
+
+```ts
+{
+  name: 'menu',
+  type: ParamType.Array,
+  required: true,
+  minItems: 1,
+  maxItems: 10,
+  itemLabel: (it) => it.label,
+  itemParams: [
+    { name: 'label', required: true, type: ParamType.Text, description: 'Label' },
+    {
+      name: 'kind', required: true, type: ParamType.List,
+      options: ['command', 'url'], defaultValue: 'command',
+      description: 'Action kind',
+    },
+    {
+      name: 'command', required: true, type: ParamType.Text,
+      when: (a) => a.kind === 'command',
+      description: 'Command id',
+    },
+    {
+      name: 'url', required: true, type: ParamType.Url,
+      when: (a) => a.kind === 'url',
+      description: 'External URL',
+    },
+  ],
+}
+```
+
+Flag-mode equivalent:
+```bash
+mycli build --menu='[{"label":"Run","kind":"command","command":"hello"}]'
+```
+
+- `answers` inside `itemParams` only sees fields of the current item.
+- Action receives the value as `Array<object>` (shape defined by `itemParams`).
+- Without `itemParams`, each iteration prompts a single text value (primitive array).
+
 > **Param order matters:** params are prompted in declaration order. Put producers (params feeding `when` / `optionsLoader` / `defaultValue` of others) **before** their consumers.
 
 ## Built-in default commands

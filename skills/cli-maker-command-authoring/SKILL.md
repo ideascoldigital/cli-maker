@@ -107,6 +107,49 @@ Shown as `[default]` in the prompt; pressing Enter accepts it. Static or context
 }
 ```
 
+### Array of items (`ParamType.Array`, v2.2.0+)
+For repeated entries (e.g. menu items, allowed hosts, list of tags). Each item is a sub-prompt scope with its own `itemParams`. Interactive mode runs an "add another?" loop; flag mode accepts a JSON array.
+
+```ts
+{
+  name: 'menu',
+  type: ParamType.Array,
+  required: true,
+  minItems: 1,            // optional
+  maxItems: 10,           // optional
+  itemLabel: (it) => it.label, // shown on "✓ … added"
+  itemParams: [
+    { name: 'label', required: true, type: ParamType.Text, description: 'Item label' },
+    {
+      name: 'kind', required: true, type: ParamType.List,
+      options: ['command', 'url'], defaultValue: 'command',
+      description: 'Action kind',
+    },
+    {
+      name: 'command', required: true, type: ParamType.List,
+      when: (a) => a.kind === 'command',
+      optionsLoader: () => listCommands(),
+      description: 'Command id',
+    },
+    {
+      name: 'url', required: true, type: ParamType.Url,
+      when: (a) => a.kind === 'url',
+      description: 'External URL',
+    },
+  ],
+}
+```
+
+Flag-mode equivalent:
+```
+--menu='[{"label":"Build","kind":"command","command":"hello"}]'
+```
+
+Notes:
+- `answers` inside `itemParams.when/optionsLoader/defaultValue` only sees fields of THE CURRENT item.
+- Action receives `args.menu` as `Array<object>` (each object shaped by `itemParams`).
+- For primitive arrays (no `itemParams`), each iteration prompts a single text value.
+
 ## Param order matters
 Params are prompted in declaration order. Put params that feed `when` / `optionsLoader` / `defaultValue` of others **before** the dependents.
 
